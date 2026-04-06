@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">AndroidStarter</string>
+
+    <!-- Generic Errors -->
+    <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_timeout">The request timed out. Please try again later.</string>
+    <string name="error_server">Server is currently unavailable. Please try again later.</string>
+    <string name="error_parsing">Error while processing data. Please try again.</string>
+    <string name="error_unauthorized">You are not authorized to perform this action.</string>
+    <string name="error_forbidden">Access to this resource is forbidden.</string>
+    <string name="error_not_found">Requested resource not found.</string>
+    <string name="error_conflict">Request could not be completed due to a conflict.</string>
+    <string name="error_too_many_requests">Too many requests. Please wait and try again later.</string>
+    <string name="error_bad_request">Invalid request. Please check and try again.</string>
+    <string name="error_service_unavailable">Service is temporarily unavailable. Please try again later.</string>
+
+    <!-- Retry CTA -->
+    <string name="action_retry">Retry</string>
+    <string name="action_ok">OK</string>
+
+</resources>
