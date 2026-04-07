@@ -7,14 +7,15 @@ plugins {
     alias(libs.plugins.jetbrainsKotlinKapt)
     alias(libs.plugins.room)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.shverma.androidstarter"
+    namespace = "com.shverma.kinetic"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.shverma.androidstarter"
+        applicationId = "com.shverma.kinetic"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -73,6 +74,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
 
     /*Retrofit*/
     implementation(libs.com.squareup.okhttp3.logging.intercepter)
@@ -113,6 +115,15 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
+
+    /*Firebase*/
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+
+    /*Google Sign-In / Credential Manager*/
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     /*Testing*/
     androidTestImplementation(libs.androidx.compose.ui.test.junit)

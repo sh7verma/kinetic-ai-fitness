@@ -1,5 +1,9 @@
 <resources>
-    <string name="app_name">AndroidStarter</string>
+    <string name="app_name">Kinetic</string>
+
+    <!-- Replace with your Web Client ID from Firebase Console →
+         Authentication → Sign-in method → Google → Web SDK configuration -->
+    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID_HERE</string>
 
     <!-- Generic Errors -->
     <string name="error_unknown">Something went wrong. Please try again.</string>
