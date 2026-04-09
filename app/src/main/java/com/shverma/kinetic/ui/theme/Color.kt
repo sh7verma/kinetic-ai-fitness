@@ -13,6 +13,22 @@ val KineticSurfaceContainerHighest = Color(0xFF262626)
 val KineticSurfaceBright = Color(0xFF2C2C2C)
 val KineticOutlineVariant = Color(0xFF484847)
 
+// Meal palette (matches design system)
+val MealBg = Color(0xFF0D0D0D)
+val MealCard = Color(0xFF1C1C1C)
+val MealVolt = Color(0xFFC8F135)
+val MealCyan = Color(0xFF00E3FD)
+val MealDanger = Color(0xFFFF5C5C)
+val MealWhite = Color(0xFFFFFFFF)
+val MealGray = Color(0xFF888888)
+val MealDescription = Color(0xFFAAAAAA)
+val MealInputBg = Color(0xFF1A1A1A)
+val MealInactive = Color(0xFF1A1A1A)
+val TealCheckmark = Color(0xFF00BFAE)
+val SyncDot = Color(0xFFC8F135)
+val SyncText = Color(0xFF666666)
+val CTAColor = Color(0xFF111111)
+
 // Primary — lime glow / high-voltage lime
 val KineticPrimary = Color(0xFFF3FFCA)
 val KineticPrimaryContainer = Color(0xFFCCFF00) // Volt

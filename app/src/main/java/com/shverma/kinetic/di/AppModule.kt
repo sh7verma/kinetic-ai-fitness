@@ -4,6 +4,8 @@ import android.content.Context
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import com.shverma.kinetic.data.repository.HomeRepository
 import com.shverma.kinetic.data.repository.HomeRepositoryImpl
+import com.shverma.kinetic.data.repository.OnboardingRepository
+import com.shverma.kinetic.data.repository.OnboardingRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -42,4 +44,10 @@ abstract class AppModule {
     abstract fun bindHomeRepository(
         homeRepositoryImpl: HomeRepositoryImpl
     ): HomeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOnboardingRepository(
+        onboardingRepositoryImpl: OnboardingRepositoryImpl
+    ): OnboardingRepository
 }

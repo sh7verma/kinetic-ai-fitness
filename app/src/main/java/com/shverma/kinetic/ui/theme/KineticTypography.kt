@@ -34,6 +34,14 @@ val SpaceGroteskFamily = FontFamily(
     Font(googleFont = GoogleFont("Space Grotesk"), fontProvider = provider, weight = FontWeight.Bold),
 )
 
+val BarlowCondensedFamily = FontFamily(
+    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Medium),
+    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.SemiBold),
+    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Bold),
+    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Black),
+)
+
 data class KineticTypography(
     val displayLg: TextStyle,
     val displayMd: TextStyle,

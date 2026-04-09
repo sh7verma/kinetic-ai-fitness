@@ -22,6 +22,7 @@ import androidx.navigation.toRoute
 import android.content.Intent
 import com.shverma.kinetic.ui.details.DetailScreen
 import com.shverma.kinetic.ui.home.HomeScreen
+import com.shverma.kinetic.ui.onboarding.screens.OnboardingScreen
 import com.shverma.kinetic.ui.theme.AppTheme
 import com.shverma.kinetic.ui.welcome.WelcomeScreen
 import androidx.compose.ui.platform.LocalContext
@@ -73,10 +74,17 @@ fun AppNavigation(
             composable<Routes.WelcomeRoute> {
                 WelcomeScreen(
                     onGetStarted = {
-                        val intent = Intent(context, LandingActivity::class.java)
-                        context.startActivity(intent)
+                        navController.navigate(Routes.OnboardingRoute)
                     },
                     onSignIn = {
+                        navController.navigate(Routes.OnboardingRoute)
+                    }
+                )
+            }
+
+            composable<Routes.OnboardingRoute> {
+                OnboardingScreen(
+                    onFinish = {
                         val intent = Intent(context, LandingActivity::class.java)
                         context.startActivity(intent)
                     }
@@ -109,6 +117,9 @@ object Routes {
 
     @Serializable
     object WelcomeRoute
+
+    @Serializable
+    object OnboardingRoute
 
     @Serializable
     object HomeRoute
