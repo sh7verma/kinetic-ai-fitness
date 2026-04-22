@@ -67,6 +67,7 @@ import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.LexendFamily
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 import com.shverma.kinetic.utils.*
+import java.util.Calendar
 
 @Composable
 fun FuelScreen(
@@ -358,6 +359,21 @@ fun FuelScreen(
                                     verticalAlignment = Alignment.Bottom
                                 ) {
                                     val maxCal = 3000f
+                                    val calendar = Calendar.getInstance()
+                                    calendar.firstDayOfWeek = Calendar.MONDAY
+                                    val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                                    // Calendar.MONDAY is 2, TUESDAY is 3, ..., SATURDAY is 7, SUNDAY is 1
+                                    // We want 0-indexed where MONDAY is 0
+                                    val todayIndex = when(currentDayOfWeek) {
+                                        Calendar.MONDAY -> 0
+                                        Calendar.TUESDAY -> 1
+                                        Calendar.WEDNESDAY -> 2
+                                        Calendar.THURSDAY -> 3
+                                        Calendar.FRIDAY -> 4
+                                        Calendar.SATURDAY -> 5
+                                        Calendar.SUNDAY -> 6
+                                        else -> 0
+                                    }
 
                                     state.weeklyTrend.forEachIndexed { index, (day, cal) ->
                                         val h = (cal / maxCal).toFloat()
@@ -383,8 +399,8 @@ fun FuelScreen(
                                                     .background(
                                                         brush = Brush.verticalGradient(
                                                             colors = listOf(
-                                                                if (index == 4) colors.primaryContainer else colors.secondary,
-                                                                if (index == 4) colors.primaryContainer.copy(alpha = 0.5f) else colors.secondary.copy(alpha = 0.5f)
+                                                                if (index == todayIndex) colors.primaryContainer else colors.secondary,
+                                                                if (index == todayIndex) colors.primaryContainer.copy(alpha = 0.5f) else colors.secondary.copy(alpha = 0.5f)
                                                             )
                                                         )
                                                     )

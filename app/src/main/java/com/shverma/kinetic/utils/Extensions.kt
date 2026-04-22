@@ -18,6 +18,15 @@ fun Date.toIsoDateString(): String = formatTo("yyyy-MM-dd")
 fun Date.toTimeString(): String = formatTo("h:mm a")
 fun Date.toDayOfWeekShort(): String = formatTo("E")
 
+fun Date.getStartOfWeek(): Date {
+    val calendar = Calendar.getInstance()
+    calendar.time = this
+    // Set to Monday
+    calendar.firstDayOfWeek = Calendar.MONDAY
+    calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+    return calendar.time
+}
+
 // Date calculation extensions
 fun Date.addDays(days: Int): Date {
     val calendar = Calendar.getInstance()

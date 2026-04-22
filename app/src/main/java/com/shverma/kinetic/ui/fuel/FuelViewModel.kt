@@ -16,6 +16,7 @@ import com.shverma.kinetic.utils.calculateProgress
 import com.shverma.kinetic.utils.formatCalories
 import com.shverma.kinetic.utils.formatMacroGrams
 import com.shverma.kinetic.utils.formatPercentage
+import com.shverma.kinetic.utils.getStartOfWeek
 import com.shverma.kinetic.utils.subtractDays
 import com.shverma.kinetic.utils.toDayOfWeekShort
 import com.shverma.kinetic.utils.toIsoDateString
@@ -47,14 +48,14 @@ class FuelViewModel @Inject constructor(
 
     private fun observeData() {
         val today = Date().toIsoDateString()
-        val sevenDaysAgo = Date().subtractDays(6).toIsoDateString()
+        val startOfWeek = Date().getStartOfWeek().toIsoDateString()
 
         combine(
             mealRepository.getMealsByDate(today),
-            mealRepository.getMealsFromDate(sevenDaysAgo),
+            mealRepository.getMealsFromDate(startOfWeek),
             userProfileRepository.getUserProfileData(),
             dataStoreHelper.mealPlan
-        ) { meals, lastSevenDaysMeals, userProfile, mealPlan ->
+        ) { meals, currentWeekMeals, userProfile, mealPlan ->
             Log.d("FuelViewModel", "Meals: ${meals.size}, UserProfile: ${userProfile != null}, MealPlan: ${mealPlan != null}")
             
             val totalEaten = meals.sumOf { it.totalCalories }
@@ -94,11 +95,11 @@ class FuelViewModel @Inject constructor(
             }
 
             // Calculate weekly trend
-            val trendMap = lastSevenDaysMeals.groupBy { it.date }
+            val trendMap = currentWeekMeals.groupBy { it.date }
                 .mapValues { entry -> entry.value.sumOf { it.totalCalories } }
 
             val weeklyTrend = mutableListOf<Pair<String, Double>>()
-            var tempDate = Date().subtractDays(6)
+            var tempDate = Date().getStartOfWeek()
             for (i in 0..6) {
                 val dateStr = tempDate.toIsoDateString()
                 val dayStr = tempDate.toDayOfWeekShort().take(1).uppercase()
