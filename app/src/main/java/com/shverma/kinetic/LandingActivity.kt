@@ -43,6 +43,8 @@ import com.shverma.kinetic.ui.stats.StatsScreen
 import com.shverma.kinetic.ui.coach.CoachScreen
 import com.shverma.kinetic.ui.profile.ProfileScreen
 import com.shverma.kinetic.ui.logexercise.LogExerciseScreen
+import com.shverma.kinetic.ui.aichat.AIChatScreen
+import com.shverma.kinetic.ui.fuel.LogMealsScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
 
@@ -66,6 +68,9 @@ object LandingRoutes {
     @Serializable object Coach
     @Serializable object Profile
     @Serializable object LogExercise
+    @Serializable object AIChat
+    @Serializable object LogMeals
+    @Serializable object TodayMealPlan
 }
 
 @Composable
@@ -73,7 +78,10 @@ fun LandingScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false
+    val showBottomBar = currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false &&
+            currentDestination?.hasRoute<LandingRoutes.AIChat>() == false &&
+            currentDestination?.hasRoute<LandingRoutes.LogMeals>() == false &&
+            currentDestination?.hasRoute<LandingRoutes.TodayMealPlan>() == false
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -109,7 +117,19 @@ fun LandingScreen() {
                     }
                 ) 
             }
-            composable<LandingRoutes.Fuel> { FuelScreen() }
+            composable<LandingRoutes.Fuel> { 
+                FuelScreen(
+                    onAIChatClick = {
+                        navController.navigate(LandingRoutes.AIChat)
+                    },
+                    onAddMealClick = {
+                        navController.navigate(LandingRoutes.LogMeals)
+                    },
+                    onEnergyCardClick = {
+                        navController.navigate(LandingRoutes.TodayMealPlan)
+                    }
+                ) 
+            }
             composable<LandingRoutes.Stats> { StatsScreen() }
             composable<LandingRoutes.Coach> { CoachScreen() }
             composable<LandingRoutes.Profile> { ProfileScreen() }
@@ -117,6 +137,21 @@ fun LandingScreen() {
                 LogExerciseScreen(
                     onBackClick = { navController.popBackStack() }
                 ) 
+            }
+            composable<LandingRoutes.AIChat> {
+                AIChatScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+            composable<LandingRoutes.LogMeals> {
+                LogMealsScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+            composable<LandingRoutes.TodayMealPlan> {
+                com.shverma.kinetic.ui.fuel.TodayMealPlanScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
             }
         }
     }

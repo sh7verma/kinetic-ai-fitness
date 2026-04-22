@@ -4,8 +4,12 @@ import android.content.Context
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import com.shverma.kinetic.data.repository.HomeRepository
 import com.shverma.kinetic.data.repository.HomeRepositoryImpl
-import com.shverma.kinetic.data.repository.OnboardingRepository
-import com.shverma.kinetic.data.repository.OnboardingRepositoryImpl
+import com.shverma.kinetic.data.repository.UserProfileRepository
+import com.shverma.kinetic.data.repository.UserProfileRepositoryImpl
+import com.shverma.kinetic.data.repository.ChatRepository
+import com.shverma.kinetic.data.repository.ChatRepositoryImpl
+import com.shverma.kinetic.data.repository.MealRepository
+import com.shverma.kinetic.data.repository.MealRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -47,7 +51,19 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindOnboardingRepository(
-        onboardingRepositoryImpl: OnboardingRepositoryImpl
-    ): OnboardingRepository
+    abstract fun bindUserProfileRepository(
+        userProfileRepositoryImpl: UserProfileRepositoryImpl
+    ): UserProfileRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatRepository(
+        chatRepositoryImpl: ChatRepositoryImpl
+    ): ChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMealRepository(
+        mealRepositoryImpl: MealRepositoryImpl
+    ): MealRepository
 }

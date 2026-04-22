@@ -5,11 +5,10 @@ import android.util.Log
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.shverma.kinetic.data.model.OnboardingData
+import com.shverma.kinetic.data.model.UserProfileData
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -23,7 +22,8 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
 
     companion object {
         private val EMAIL_KEY = stringPreferencesKey("email")
-        private val ONBOARDING_DATA_KEY = stringPreferencesKey("onboarding_data")
+        private val USER_PROFILE_DATA_KEY = stringPreferencesKey("user_profile_data")
+        private val CURRENT_MEAL_PLAN_KEY = stringPreferencesKey("current_meal_plan")
     }
 
     private val dataStore = context.dataStore
@@ -46,21 +46,21 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
         savedEmail
     }
 
-    suspend fun saveOnboardingData(data: OnboardingData) {
+    suspend fun saveUserProfileData(data: UserProfileData) {
         val jsonData = json.encodeToString(data)
-        Log.d("DataStoreHelper", "Saving OnboardingData JSON: $jsonData")
+        Log.d("DataStoreHelper", "Saving UserProfileData JSON: $jsonData")
         dataStore.edit { preferences ->
-            preferences[ONBOARDING_DATA_KEY] = jsonData
+            preferences[USER_PROFILE_DATA_KEY] = jsonData
         }
     }
 
-    val onboardingData: Flow<OnboardingData?> = dataStore.data.map { preferences ->
-        preferences[ONBOARDING_DATA_KEY]?.let { jsonData ->
-            Log.d("DataStoreHelper", "Retrieved OnboardingData JSON: $jsonData")
+    val userProfileData: Flow<UserProfileData?> = dataStore.data.map { preferences ->
+        preferences[USER_PROFILE_DATA_KEY]?.let { jsonData ->
+            Log.d("DataStoreHelper", "Retrieved UserProfileData JSON: $jsonData")
             try {
-                json.decodeFromString<OnboardingData>(jsonData)
+                json.decodeFromString<UserProfileData>(jsonData)
             } catch (e: Exception) {
-                Log.e("DataStoreHelper", "Error decoding OnboardingData", e)
+                Log.e("DataStoreHelper", "Error decoding UserProfileData", e)
                 null
             }
         }
@@ -69,6 +69,24 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
     suspend fun clearDataStore() {
         dataStore.edit { preferences ->
             preferences.clear()
+        }
+    }
+
+    suspend fun saveMealPlan(plan: com.shverma.kinetic.data.model.MealPlan) {
+        val jsonData = json.encodeToString(plan)
+        dataStore.edit { preferences ->
+            preferences[CURRENT_MEAL_PLAN_KEY] = jsonData
+        }
+    }
+
+    val mealPlan: Flow<com.shverma.kinetic.data.model.MealPlan?> = dataStore.data.map { preferences ->
+        preferences[CURRENT_MEAL_PLAN_KEY]?.let { jsonData ->
+            try {
+                json.decodeFromString<com.shverma.kinetic.data.model.MealPlan>(jsonData)
+            } catch (e: Exception) {
+                Log.e("DataStoreHelper", "Error decoding MealPlan", e)
+                null
+            }
         }
     }
 }

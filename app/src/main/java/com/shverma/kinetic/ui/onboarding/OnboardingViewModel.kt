@@ -2,9 +2,10 @@ package com.shverma.kinetic.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shverma.kinetic.data.auth.GoogleAuthRepository
 import com.shverma.kinetic.data.model.DietaryGoal
-import com.shverma.kinetic.data.model.OnboardingData
-import com.shverma.kinetic.data.repository.OnboardingRepository
+import com.shverma.kinetic.data.model.UserProfileData
+import com.shverma.kinetic.data.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,8 @@ data class OnboardingUiState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val onboardingRepository: OnboardingRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val authRepository: GoogleAuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -48,12 +50,12 @@ class OnboardingViewModel @Inject constructor(
     private var isDataLoaded = false
 
     init {
-        loadOnboardingData()
+        loadUserProfileData()
     }
 
-    private fun loadOnboardingData() {
+    private fun loadUserProfileData() {
         viewModelScope.launch {
-            onboardingRepository.getOnboardingData().collect { data ->
+            userProfileRepository.getUserProfileData().collect { data ->
                 data?.let { savedData ->
                     _uiState.update { state ->
                         state.copy(
@@ -80,11 +82,13 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun saveOnboardingProgress() {
+    fun saveUserProfileData() {
         if (!isDataLoaded) return
         viewModelScope.launch {
             val state = _uiState.value
-            val data = OnboardingData(
+            val currentUser = authRepository.getCurrentUser()
+            val data = UserProfileData(
+                uid = currentUser?.uid ?: "",
                 age = state.age,
                 weight = state.weight,
                 weightUnit = state.weightUnit,
@@ -101,13 +105,13 @@ class OnboardingViewModel @Inject constructor(
                 cuisines = state.selectedCuisines,
                 isCompleted = state.currentStep == OnboardingStep.entries.last()
             )
-            onboardingRepository.saveOnboardingData(data)
+            userProfileRepository.saveUserProfileData(data)
         }
     }
 
     fun nextStep() {
         val currentStepNumber = _uiState.value.currentStep.stepNumber
-        saveOnboardingProgress()
+        saveUserProfileData()
         if (currentStepNumber < OnboardingStep.totalSteps) {
             val nextStep = OnboardingStep.fromStepNumber(currentStepNumber + 1)
             _uiState.update { it.copy(currentStep = nextStep) }
@@ -125,7 +129,7 @@ class OnboardingViewModel @Inject constructor(
     fun skipOnboarding() {
         // Handle skip logic - might navigate to landing activity
         _uiState.update { it.copy(currentStep = OnboardingStep.entries.last()) }
-        saveOnboardingProgress()
+        saveUserProfileData()
     }
 
     // Biometrics Actions

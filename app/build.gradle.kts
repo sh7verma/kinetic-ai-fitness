@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -12,7 +14,13 @@ plugins {
 
 android {
     namespace = "com.shverma.kinetic"
-    compileSdk = 35
+    compileSdk = 36
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
 
     defaultConfig {
         applicationId = "com.shverma.kinetic"
@@ -20,6 +28,12 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "OPENAI_API_KEY",
+            "\"${localProperties.getProperty("OPENAI_API_KEY") ?: ""}\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,6 +56,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -119,6 +134,11 @@ dependencies {
     /*Firebase*/
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+
+
+    /* OpenAI */
+    implementation(libs.openai)
+    implementation(libs.ktor.client.okhttp)
 
     /*Google Sign-In / Credential Manager*/
     implementation(libs.credentials)

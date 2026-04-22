@@ -3,6 +3,7 @@ package com.shverma.kinetic.ui.fuel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,11 +12,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Opacity
-import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -40,14 +41,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shverma.kinetic.ui.components.KineticDataCard
 import com.shverma.kinetic.ui.components.KineticProgressBar
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.shverma.kinetic.data.model.Meal
+import com.shverma.kinetic.data.model.MealItem
+import com.shverma.kinetic.data.model.MealPlan
+import com.shverma.kinetic.ui.components.FoodItemRow
+import com.shverma.kinetic.ui.components.KPDivider
+import com.shverma.kinetic.ui.components.mealAccent
+import com.shverma.kinetic.ui.theme.*
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import com.shverma.kinetic.ui.components.KineticTopAppBar
 import com.shverma.kinetic.ui.components.kineticGlow
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.LexendFamily
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
+import com.shverma.kinetic.utils.*
 
 @Composable
-fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
+fun FuelScreen(
+    viewModel: FuelViewModel = hiltViewModel(),
+    onAIChatClick: () -> Unit = {},
+    onAddMealClick: () -> Unit = {},
+    onEnergyCardClick: () -> Unit = {}
+) {
     val colors = KineticTheme.colors
     val state by viewModel.state.collectAsState()
 
@@ -55,16 +82,33 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
         containerColor = colors.background,
         topBar = { KineticTopAppBar() },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.onEvent(FuelEvents.AddMeal) },
-                containerColor = colors.primaryContainer,
-                contentColor = colors.onPrimary,
-                shape = CircleShape
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Meal"
-                )
+                FloatingActionButton(
+                    onClick = onAIChatClick,
+                    containerColor = colors.primary,
+                    contentColor = colors.onPrimary,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = "AI Chat"
+                    )
+                }
+
+                FloatingActionButton(
+                    onClick = onAddMealClick,
+                    containerColor = colors.primaryContainer,
+                    contentColor = colors.onPrimary,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Meal"
+                    )
+                }
             }
         }
     ) { padding ->
@@ -79,7 +123,9 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
             // 2. HERO ENERGY CARD
             item {
                 KineticDataCard(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEnergyCardClick() },
                     title = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -144,7 +190,7 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                         }
                     },
                     unit = {
-                        // Bottom Row: EATEN (left), BURNED (right, cyan color)
+                        // Bottom Row: EATEN (left) & TARGET (right)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -163,14 +209,14 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "BURNED",
+                                    text = "TARGET",
                                     style = KineticTheme.typography.labelSm,
                                     color = colors.onSurfaceVariant
                                 )
                                 Text(
-                                    text = state.caloriesBurned,
+                                    text = state.caloriesTarget,
                                     style = KineticTheme.typography.titleMd.copy(fontWeight = FontWeight.Bold),
-                                    color = colors.secondary // cyan
+                                    color = colors.onSurface
                                 )
                             }
                         }
@@ -213,14 +259,15 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                                 style = typography.labelLg.copy(fontWeight = FontWeight.Bold),
                                 color = colors.onSurface
                             )
+                            val summaryText = if (state.caloriesProgress > 0.8f) {
+                                "You're close to your calorie target. Keep it up!"
+                            } else if (state.caloriesProgress > 0) {
+                                "Great start on your meals today! Keep hitting your goals."
+                            } else {
+                                "Log your first meal to see your AI Nutrition Summary."
+                            }
                             Text(
-                                text = buildAnnotatedString {
-                                    append("You're ")
-                                    withStyle(SpanStyle(color = colors.primaryContainer, fontWeight = FontWeight.Bold)) {
-                                        append("ahead of schedule")
-                                    }
-                                    append(". Keep hitting your protein goals to maintain muscle mass.")
-                                },
+                                text = summaryText,
                                 style = typography.bodySm,
                                 color = colors.onSurfaceVariant
                             )
@@ -264,20 +311,16 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
 
             // 5. WEEKLY TREND SECTION
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // Weekly Trend Chart
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colors.surfaceContainerLow)
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
+                        .padding(12.dp)
                 ) {
-                    // Left: Weekly Trend Chart
-                    Box(
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(140.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(colors.surfaceContainerLow)
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
-                            .padding(12.dp)
-                    ) {
                         val typography = KineticTheme.typography
                         Column {
                             Text(
@@ -317,7 +360,7 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                                     val maxCal = 3000f
 
                                     state.weeklyTrend.forEachIndexed { index, (day, cal) ->
-                                        val h = cal / maxCal
+                                        val h = (cal / maxCal).toFloat()
                                         Column(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Bottom,
@@ -326,13 +369,13 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                                             Box(
                                                 modifier = Modifier
                                                     .width(8.dp)
-                                                    .fillMaxHeight(h)
+                                                    .fillMaxHeight(h.coerceAtLeast(0.01f))
                                                     .drawBehind {
                                                         // Reference line
                                                         drawLine(
                                                             color = Color.White.copy(alpha = 0.05f),
                                                             start = Offset(0f, 0f),
-                                                            end = Offset(0f, -size.height / h),
+                                                            end = Offset(0f, -size.height / (if (h > 0) h else 1f)),
                                                             strokeWidth = 1f
                                                         )
                                                     }
@@ -357,61 +400,141 @@ fun FuelScreen(viewModel: FuelViewModel = hiltViewModel()) {
                                 }
                             }
                         }
-                    }
-
-                    // Right: Stacked mini cards
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Water intake
-                        MiniCard(
-                            icon = Icons.Default.Opacity,
-                            value = state.waterValue,
-                            label = "WATER",
-                            iconColor = colors.secondary
-                        )
-                        // Fasting
-                        MiniCard(
-                            icon = Icons.Default.AccessTime,
-                            value = state.fastingValue,
-                            label = "FASTING",
-                            iconColor = colors.primaryContainer
-                        )
-                    }
                 }
             }
 
-            // 6. RECENT FUEL LIST
-            item {
-                val typography = KineticTheme.typography
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            // 6. DAILY MEAL PLAN
+            state.mealPlan?.let { plan ->
+                item {
                     Text(
-                        text = "RECENT FUEL",
-                        style = typography.titleMd.copy(fontWeight = FontWeight.Black),
-                        color = colors.onSurface
+                        text = "DAILY MEAL PLAN",
+                        style = KineticTheme.typography.labelSm.copy(fontWeight = FontWeight.Bold),
+                        color = colors.onSurfaceVariant
                     )
-                    TextButton(onClick = { /* View All */ }) {
-                        Text(
-                            text = "VIEW ALL",
-                            style = typography.labelMd.copy(fontWeight = FontWeight.Bold),
-                            color = colors.primaryContainer
-                        )
+                }
+
+                items(plan.meals) { meal ->
+                    PlannedMealRow(
+                        meal = meal,
+                        isLogged = state.loggedMealNames.contains(meal.name),
+                        onLogClick = { viewModel.onEvent(FuelEvents.LogPlannedMeal(meal)) }
+                    )
+                }
+            }
+            }
+        }
+    }
+
+
+@Composable
+fun PlannedMealRow(meal: Meal, isLogged: Boolean, onLogClick: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val colors = KineticTheme.colors
+    val accent = mealAccent(meal.name)
+    val chevron by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(220),
+        label = "chevron_${meal.name}",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.surfaceContainer)
+            .clickable { expanded = !expanded }
+    ) {
+        // Header row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Accent bar
+            Box(
+                Modifier
+                    .width(3.dp)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent.color),
+            )
+            Column(Modifier.weight(1f)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(meal.name, color = MealWhite, fontSize = 14.sp, fontFamily = LexendFamily, fontWeight = FontWeight.SemiBold)
+                        Text(meal.time, color = MealGray, fontSize = 10.sp, fontFamily = SpaceGroteskFamily)
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        val calories = meal.items.sumOf { it.calories }
+                        Text(calories.formatCalories(), color = accent.color, fontSize = 17.sp, fontFamily = LexendFamily, fontWeight = FontWeight.Bold, lineHeight = 17.sp)
+                        Text("kcal", color = MealGray, fontSize = 9.sp, fontFamily = SpaceGroteskFamily, modifier = Modifier.padding(bottom = 1.dp))
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(MealCyan))
+                        Text("P: ${meal.items.sumOf { it.proteinG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(MealVolt))
+                        Text("C: ${meal.items.sumOf { it.carbsG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(KineticTertiary))
+                        Text("F: ${meal.items.sumOf { it.fatsG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
                     }
                 }
             }
+            
+            IconButton(
+                onClick = onLogClick,
+                enabled = !isLogged
+            ) {
+                Icon(
+                    imageVector = if (isLogged) Icons.Default.Check else Icons.Default.Add,
+                    contentDescription = if (isLogged) "Meal Logged" else "Log Meal",
+                    tint = if (isLogged) KineticTheme.colors.primary else colors.primaryContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            Text("▼", color = MealGray, fontSize = 10.sp, modifier = Modifier.rotate(chevron))
+        }
 
-            items(state.recentFuelList) { item ->
-                FuelItemRow(item, colors.primaryContainer)
+        // Expanded content
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(tween(300, easing = FastOutSlowInEasing)),
+            exit = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(colors.surfaceContainerHigh)
+                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp)),
+            ) {
+                meal.items.forEachIndexed { i, item ->
+                    FoodItemRow(item = item, accentColor = accent.color)
+                    if (i < meal.items.lastIndex) KPDivider()
+                }
             }
         }
     }
 }
-
 
 @Composable
 fun MacroCard(
@@ -420,7 +543,7 @@ fun MacroCard(
     value: String,
     percent: String,
     color: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: ImageVector
 ) {
     val typography = KineticTheme.typography
     val colors = KineticTheme.colors
@@ -469,9 +592,15 @@ fun MacroCard(
                     .clip(CircleShape)
                     .background(colors.surfaceContainerHigh)
             ) {
+                // Calculate float progress from percent string
+                val progressValue = try {
+                    percent.replace("%", "").toFloat() / 100f
+                } catch (e: Exception) {
+                    0f
+                }
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f) // Placeholder progress
+                        .fillMaxWidth(progressValue.coerceIn(0f, 1.05f))
                         .fillMaxHeight()
                         .background(color)
                 )
@@ -562,7 +691,7 @@ fun FuelItemRow(item: FuelItem, voltColor: Color) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "${item.calories} kcal",
+                text = "${item.calories.formatCalories()} kcal",
                 style = typography.labelLg.copy(fontWeight = FontWeight.Bold),
                 color = colors.onSurface
             )

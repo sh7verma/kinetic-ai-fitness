@@ -1,4 +1,4 @@
-You are building an Android fitness app called [APP NAME] using Jetpack Compose.
+You are building an Android fitness app called Kinetic using Jetpack Compose.
 The design language is called "Kinetic Precision" — a premium, dark, HUD-style UI
 that feels like a performance dashboard for the human body.
 

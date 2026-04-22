@@ -46,9 +46,9 @@ class HomeScreenViewModel @Inject constructor(
 
     private fun fetchItems() {
         viewModelScope.launch {
-            // Simulate loading data
+            // No items to show for now
             _state.value = _state.value.copy(
-                itemList = listOf("Item 1", "Item 2", "Item 3"),
+                itemList = emptyList(),
                 isLoading = false
             )
         }

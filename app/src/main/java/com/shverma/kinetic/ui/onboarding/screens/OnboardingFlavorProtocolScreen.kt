@@ -124,7 +124,7 @@ fun OnboardingFlavorProtocolStep(
         // Bottom Navigation Buttons
         OnboardingBottomNavigation(
             onContinue = {
-                viewModel.saveOnboardingProgress()
+                viewModel.saveUserProfileData()
                 onContinue()
             },
             continueText = "FINISH",

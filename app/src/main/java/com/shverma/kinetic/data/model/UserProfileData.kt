@@ -54,8 +54,10 @@ val allergyDatabase = listOf(
 )
 
 @Serializable
-data class OnboardingData(
+data class UserProfileData(
+    val uid: String = "",
     val age: Double = 28.0,
+    val name: String ="User",
     val weight: Double = 75.0,
     val weightUnit: String = "KG",
     val height: Double = 175.0,
@@ -70,4 +72,28 @@ data class OnboardingData(
     val activityLevel: String = "ACTIVE",
     val cuisines: Set<String> = setOf("MEDITERRANEAN"),
     val isCompleted: Boolean = false
-)
+) {
+    fun calculateTargetCalories(): Double {
+        val bmr = if (sex == "MALE") {
+            (10 * weight) + (6.25 * height) - (5 * age) + 5
+        } else {
+            (10 * weight) + (6.25 * height) - (5 * age) - 161
+        }
+
+        val activityMultiplier = when (activityLevel) {
+            "SEDENTARY" -> 1.2
+            "LIGHT" -> 1.375
+            "MODERATE" -> 1.55
+            "ACTIVE" -> 1.725
+            "VERY ACTIVE" -> 1.9
+            else -> 1.5
+        }
+
+        var tdee = bmr * activityMultiplier
+        tdee += when (dietaryGoal) {
+            DietaryGoal.MUSCLE_GAIN -> 300.0
+            DietaryGoal.FAT_LOSS -> -500.0
+        }
+        return tdee
+    }
+}

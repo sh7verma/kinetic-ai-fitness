@@ -1,6 +1,7 @@
 [versions]
 agp = "8.7.3"
 foundation = "1.8.2"
+openai = "3.3.0"
 jetbrains-kotlin-android = "2.1.0"
 android-git-version = "0.4.14"
 dagger-hilt-android-version = "2.53"
@@ -44,6 +45,7 @@ ui-android-version = "1.8.2"
 work-runtime-version = "2.10.1"
 jose4j-version = "0.9.5"
 serialization = "1.7.3"
+ktor = "2.3.12"
 
 mockk = "1.13.2"
 turbine = "0.12.1"
@@ -67,10 +69,12 @@ androidx-lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-
 androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-ktx-version" }
 androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle-ktx-version" }
 coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coil-svg" }
+openai = { module = "com.aallam.openai:openai-client", version.ref = "openai" }
 media3-common = { module = "androidx.media3:media3-common", version.ref = "media3-common" }
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3-ui" }
 org-jetbrains-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutine-version" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization"}
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 
 #compose
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "compose-activity-version" }

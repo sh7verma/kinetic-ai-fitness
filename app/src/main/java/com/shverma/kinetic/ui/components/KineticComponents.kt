@@ -173,17 +173,29 @@ fun KineticProgressBar(
     progress: Float,
     modifier: Modifier = Modifier,
     trackHeight: Dp = 6.dp,
+    color: Color? = null,
 ) {
     val colors = KineticTheme.colors
+    val isOverTarget = progress > 1f
+    
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = spring(),
         label = "kinetic_progress",
     )
 
-    val fillBrush = Brush.horizontalGradient(
-        colors = listOf(colors.primaryDim, colors.primary),
-    )
+    val baseColor = color ?: colors.primary
+    val dimColor = color?.copy(alpha = 0.5f) ?: colors.primaryDim
+
+    val fillBrush = if (isOverTarget) {
+        Brush.horizontalGradient(
+            colors = listOf(colors.error, colors.error.copy(alpha = 0.5f)),
+        )
+    } else {
+        Brush.horizontalGradient(
+            colors = listOf(dimColor, baseColor),
+        )
+    }
 
     Box(modifier = modifier) {
         Canvas(
@@ -220,7 +232,7 @@ fun KineticProgressBar(
                         brush = Brush.horizontalGradient(
                             colorStops = arrayOf(
                                 0.7f to Color.Transparent,
-                                1.0f to colors.primary.copy(alpha = 0.65f),
+                                1.0f to baseColor.copy(alpha = 0.65f),
                             ),
                         ),
                         shape = RoundedCornerShape(trackHeight / 2),
