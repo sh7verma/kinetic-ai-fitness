@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.shverma.kinetic.data.local.AppDatabase
 import com.shverma.kinetic.data.local.dao.ExerciseDao
+import com.shverma.kinetic.data.local.dao.FoodDao
 import com.shverma.kinetic.data.local.dao.MealDao
 import dagger.Module
 import dagger.Provides
@@ -37,5 +38,11 @@ object DatabaseModule {
     @Singleton
     fun provideExerciseDao(database: AppDatabase): ExerciseDao {
         return database.exerciseDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFoodDao(database: AppDatabase): FoodDao {
+        return database.foodDao()
     }
 }

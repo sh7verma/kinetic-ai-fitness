@@ -25,6 +25,7 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
         private val USER_PROFILE_DATA_KEY = stringPreferencesKey("user_profile_data")
         private val CURRENT_MEAL_PLAN_KEY = stringPreferencesKey("current_meal_plan")
         private val CURRENT_WORKOUT_PLAN_KEY = stringPreferencesKey("current_workout_plan")
+        private val LAST_FOOD_SYNC_KEY = stringPreferencesKey("last_food_sync")
     }
 
     private val dataStore = context.dataStore
@@ -107,5 +108,15 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
                 null
             }
         }
+    }
+
+    suspend fun saveLastFoodSync(timestamp: Long) {
+        dataStore.edit { preferences ->
+            preferences[LAST_FOOD_SYNC_KEY] = timestamp.toString()
+        }
+    }
+
+    val lastFoodSync: Flow<Long> = dataStore.data.map { preferences ->
+        preferences[LAST_FOOD_SYNC_KEY]?.toLongOrNull() ?: 0L
     }
 }

@@ -5,10 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.auth.GoogleAuthRepository
 import com.shverma.kinetic.data.auth.GoogleSignInResult
+import com.shverma.kinetic.data.preference.DataStoreHelper
+import com.shverma.kinetic.data.repository.FoodRepository
 import com.shverma.kinetic.data.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,7 +25,9 @@ sealed class AuthState {
 @HiltViewModel
 class WelcomeViewModel @Inject constructor(
     private val authRepository: GoogleAuthRepository,
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val foodRepository: FoodRepository,
+    private val dataStoreHelper: DataStoreHelper
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -30,6 +35,24 @@ class WelcomeViewModel @Inject constructor(
 
     init {
         checkLocalSession()
+        syncFoodsIfNeeded()
+    }
+
+    private fun syncFoodsIfNeeded() {
+        viewModelScope.launch {
+            val lastSync = dataStoreHelper.lastFoodSync.first()
+            val currentTime = System.currentTimeMillis()
+            val oneDayMs = 24 * 60 * 60 * 1000L
+
+            if (currentTime - lastSync > oneDayMs) {
+                try {
+                    foodRepository.syncFoodsFromFirestore()
+                    dataStoreHelper.saveLastFoodSync(currentTime)
+                } catch (e: Exception) {
+                    android.util.Log.e("WelcomeViewModel", "Food sync failed", e)
+                }
+            }
+        }
     }
 
     private fun checkLocalSession() {

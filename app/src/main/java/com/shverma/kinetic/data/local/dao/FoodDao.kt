@@ -1,0 +1,16 @@
+package com.shverma.kinetic.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.shverma.kinetic.data.local.entity.FoodEntity
+
+@Dao
+interface FoodDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(foods: List<FoodEntity>)
+
+    @Query("SELECT * FROM foods WHERE name LIKE '%' || :query || '%' LIMIT 10")
+    suspend fun searchFoods(query: String): List<FoodEntity>
+}
