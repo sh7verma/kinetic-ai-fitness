@@ -1,5 +1,6 @@
 package com.shverma.kinetic.ui.aichat
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.local.entity.MealEntity
@@ -9,11 +10,14 @@ import com.shverma.kinetic.data.model.MealItem
 import com.shverma.kinetic.data.model.MealPlan
 import com.shverma.kinetic.data.model.MultiLogResponse
 import com.shverma.kinetic.data.model.SingleLogResponse
+import com.shverma.kinetic.data.model.UserProfileData
 import com.shverma.kinetic.data.model.WorkoutPlan
 import com.shverma.kinetic.data.model.toMealEntity
+import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import com.shverma.kinetic.data.repository.ChatRepository
 import com.shverma.kinetic.data.repository.MealRepository
+import com.shverma.kinetic.data.repository.UserProfileRepository
 import com.shverma.kinetic.utils.toIsoDateString
 import com.shverma.kinetic.utils.toTimeString
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +27,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.util.Date
 import javax.inject.Inject
 
@@ -37,23 +43,45 @@ data class ChatMessage(
 )
 
 data class AIChatState(
-    val messages: List<ChatMessage> = listOf(
-        ChatMessage("Hello! I'm your Kinetic AI coach. How can I help you today?", false)
-    ),
+    val messages: List<ChatMessage> = emptyList(),
     val inputText: String = "",
-    val isTyping: Boolean = false
+    val isTyping: Boolean = false,
+    val chatType: ChatType = ChatType.WORKOUT
 )
 
 @HiltViewModel
 class AIChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val mealRepository: MealRepository,
-    private val dataStoreHelper: DataStoreHelper
+    private val userProfileRepository: UserProfileRepository,
+    private val dataStoreHelper: DataStoreHelper,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    private val _state = MutableStateFlow(AIChatState())
+    private val initialChatTypeStr: String = savedStateHandle["chatType"] ?: "WORKOUT"
+    private val initialChatType = try { ChatType.valueOf(initialChatTypeStr) } catch (e: Exception) { ChatType.WORKOUT }
+
+    private val _state = MutableStateFlow(AIChatState(chatType = initialChatType))
     val state: StateFlow<AIChatState> = _state.asStateFlow()
 
     init {
+        updateWelcomeMessage(initialChatType)
+    }
+
+    private fun updateWelcomeMessage(type: ChatType) {
+        val welcomeMessage = when (type) {
+            ChatType.WORKOUT, ChatType.LOG_WORKOUT -> "Hello! I'm your Kinetic Workout coach. How can I help you with your training today?"
+            ChatType.MEALS, ChatType.LOG_MEAL -> "Hello! I'm your Kinetic Nutrition coach. How can I help you with your meals today?"
+        }
+        _state.update {
+            it.copy(
+                messages = it.messages + ChatMessage(welcomeMessage, false)
+            )
+        }
+    }
+
+    fun onChatTypeChange(type: ChatType) {
+        if (_state.value.chatType == type) return
+        _state.update { it.copy(chatType = type) }
     }
 
 
@@ -75,7 +103,25 @@ class AIChatViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            chatRepository.chat(currentText).onSuccess { response ->
+            val currentMealPlan = dataStoreHelper.mealPlan.firstOrNull()?.let {
+                Json.encodeToString(it)
+            } ?: ""
+            val weeklyMeals = mealRepository.getMealsFromDate(Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000).toIsoDateString())
+                .firstOrNull()?.let {
+                    Json.encodeToString(it)
+                } ?: ""
+            val currentWorkoutPlan = dataStoreHelper.workoutPlan.firstOrNull()?.let {
+                Json.encodeToString(it)
+            } ?: ""
+            
+            chatRepository.chat(
+                message = currentText,
+                chatType = _state.value.chatType,
+                weeklyWorkouts = "", // TODO: Get weekly workouts if needed
+                currentMealPlan = currentMealPlan,
+                weeklyMeals = weeklyMeals,
+                currentWorkoutPlan = currentWorkoutPlan
+            ).onSuccess { response ->
                 val aiMessage = when (response) {
                     is AIResponse.TextAnswer -> ChatMessage(response.message, false)
                     is AIResponse.WorkoutPlan -> ChatMessage(
@@ -129,6 +175,18 @@ class AIChatViewModel @Inject constructor(
             mealPlan.meals.forEach { meal ->
                 mealRepository.insertMeal(meal.toMealEntity(date))
             }
+            
+            userProfileRepository.getUserProfileData().firstOrNull()?.let { userProfile ->
+                if (userProfile.uid.isNotBlank()) {
+                    mealRepository.saveMealPlanToFirestore(userProfile.uid, mealPlan)
+                }
+            }
+        }
+    }
+
+    fun saveWorkoutPlan(workoutPlan: WorkoutPlan) {
+        viewModelScope.launch {
+            dataStoreHelper.saveWorkoutPlan(workoutPlan)
         }
     }
 

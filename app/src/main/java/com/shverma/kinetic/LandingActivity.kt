@@ -34,6 +34,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
+import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.ui.theme.AppTheme
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
@@ -68,7 +72,8 @@ object LandingRoutes {
     @Serializable object Coach
     @Serializable object Profile
     @Serializable object LogExercise
-    @Serializable object AIChat
+    @Serializable
+    data class AIChat(val chatType: String)
     @Serializable object LogMeals
     @Serializable object TodayMealPlan
 }
@@ -108,19 +113,22 @@ fun LandingScreen() {
             startDestination = LandingRoutes.Plan,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = padding.calculateBottomPadding()) // Avoid extra padding if screens have their own Scaffold
+                .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp) // Avoid extra padding if screens have their own Scaffold
         ) {
             composable<LandingRoutes.Plan> { 
                 PlanScreen(
                     onLogComplete = {
                         navController.navigate(LandingRoutes.LogExercise)
+                    },
+                    onAIChatClick = {
+                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.WORKOUT.name))
                     }
                 ) 
             }
             composable<LandingRoutes.Fuel> { 
                 FuelScreen(
                     onAIChatClick = {
-                        navController.navigate(LandingRoutes.AIChat)
+                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     },
                     onAddMealClick = {
                         navController.navigate(LandingRoutes.LogMeals)
@@ -131,14 +139,35 @@ fun LandingScreen() {
                 ) 
             }
             composable<LandingRoutes.Stats> { StatsScreen() }
-            composable<LandingRoutes.Coach> { CoachScreen() }
-            composable<LandingRoutes.Profile> { ProfileScreen() }
+            composable<LandingRoutes.Coach> { 
+                CoachScreen(
+                    onWorkoutChatClick = {
+                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.WORKOUT.name))
+                    },
+                    onMealChatClick = {
+                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
+                    }
+                )
+            }
+            composable<LandingRoutes.Profile> { 
+                val context = LocalContext.current
+                ProfileScreen(
+                    onLogout = {
+                        (context as? Activity)?.let { activity ->
+                            val intent = android.content.Intent(activity, MainActivity::class.java)
+                            activity.startActivity(intent)
+                            activity.finish()
+                        }
+                    }
+                ) 
+            }
             composable<LandingRoutes.LogExercise> { 
                 LogExerciseScreen(
                     onBackClick = { navController.popBackStack() }
                 ) 
             }
-            composable<LandingRoutes.AIChat> {
+            composable<LandingRoutes.AIChat> { backStackEntry ->
+                val args = backStackEntry.toRoute<LandingRoutes.AIChat>()
                 AIChatScreen(
                     onBackClick = { navController.popBackStack() }
                 )

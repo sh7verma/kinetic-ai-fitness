@@ -215,7 +215,7 @@ fun GoalCard(goal: DietaryGoal, isSelected: Boolean, onClick: () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DietTypeSection(
-    selectedDietTypes: Set<String>,
+    selectedDietTypes: List<String>,
     onToggleDietType: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -270,7 +270,7 @@ fun CriticalSensitivitiesSection(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     allergies: List<AllergyItem>,
-    selectedAllergies: Set<String>,
+    selectedAllergies: List<String>,
     onToggleAllergy: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {

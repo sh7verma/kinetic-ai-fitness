@@ -51,12 +51,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -134,11 +137,9 @@ dependencies {
     /*Firebase*/
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
 
-    /* OpenAI */
-    implementation(libs.openai)
-    implementation(libs.ktor.client.okhttp)
 
     /*Google Sign-In / Credential Manager*/
     implementation(libs.credentials)

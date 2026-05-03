@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.update
 import java.util.Date
@@ -44,6 +45,23 @@ class FuelViewModel @Inject constructor(
     init {
         loadInitialData()
         observeData()
+        fetchFirestoreMealPlanIfNeeded()
+    }
+
+    private fun fetchFirestoreMealPlanIfNeeded() {
+        viewModelScope.launch {
+            val currentPlan = dataStoreHelper.mealPlan.firstOrNull()
+            if (currentPlan == null) {
+                val user = userProfileRepository.getUserProfileData().firstOrNull()
+                if (user != null && user.uid.isNotBlank()) {
+                    val today = Date().toIsoDateString()
+                    val firestorePlan = mealRepository.getMealPlanFromFirestore(user.uid, today)
+                    if (firestorePlan != null) {
+                        dataStoreHelper.saveMealPlan(firestorePlan)
+                    }
+                }
+            }
+        }
     }
 
     private fun observeData() {

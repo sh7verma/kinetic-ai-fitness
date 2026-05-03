@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import android.content.Intent
+import android.app.Activity
 import com.shverma.kinetic.ui.details.DetailScreen
 import com.shverma.kinetic.ui.home.HomeScreen
 import com.shverma.kinetic.ui.onboarding.screens.OnboardingScreen
@@ -73,11 +74,14 @@ fun AppNavigation(
         ) {
             composable<Routes.WelcomeRoute> {
                 WelcomeScreen(
-                    onGetStarted = {
+                    snackBarHostState = snackBarHostState,
+                    onNavigateToOnboarding = {
                         navController.navigate(Routes.OnboardingRoute)
                     },
-                    onSignIn = {
-                        navController.navigate(Routes.OnboardingRoute)
+                    onNavigateToLanding = {
+                        val intent = Intent(context, LandingActivity::class.java)
+                        context.startActivity(intent)
+                        (context as? Activity)?.finish()
                     }
                 )
             }

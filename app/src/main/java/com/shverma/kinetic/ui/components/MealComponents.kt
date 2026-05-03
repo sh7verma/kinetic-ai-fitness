@@ -1,16 +1,42 @@
 package com.shverma.kinetic.ui.components
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,9 +46,26 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shverma.kinetic.data.model.*
-import com.shverma.kinetic.ui.theme.*
-import com.shverma.kinetic.utils.*
+import com.shverma.kinetic.data.model.LogEntry
+import com.shverma.kinetic.data.model.Meal
+import com.shverma.kinetic.data.model.MealItem
+import com.shverma.kinetic.data.model.MealPlan
+import com.shverma.kinetic.data.model.MultiLogResponse
+import com.shverma.kinetic.data.model.SingleLogResponse
+import com.shverma.kinetic.ui.theme.KineticSecondary
+import com.shverma.kinetic.ui.theme.KineticTertiary
+import com.shverma.kinetic.ui.theme.KineticTheme
+import com.shverma.kinetic.ui.theme.LexendFamily
+import com.shverma.kinetic.ui.theme.MealCyan
+import com.shverma.kinetic.ui.theme.MealDescription
+import com.shverma.kinetic.ui.theme.MealGray
+import com.shverma.kinetic.ui.theme.MealVolt
+import com.shverma.kinetic.ui.theme.MealWhite
+import com.shverma.kinetic.ui.theme.PlusJakartaSansFamily
+import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
+import com.shverma.kinetic.utils.formatCalories
+import com.shverma.kinetic.utils.formatMacroGrams
+import com.shverma.kinetic.utils.formatMacroGramsOneDecimal
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -57,7 +100,16 @@ fun MealPlanCard(
 ) {
     val scope = rememberCoroutineScope()
     val colors = KineticTheme.colors
-    val mealStates = remember { mutableStateMapOf<String, SaveState>().apply { plan.meals.forEach { put(it.name, SaveState.IDLE) } } }
+    val mealStates = remember {
+        mutableStateMapOf<String, SaveState>().apply {
+            plan.meals.forEach {
+                put(
+                    it.name,
+                    SaveState.IDLE
+                )
+            }
+        }
+    }
     var allSaved by remember { mutableStateOf(false) }
     var savingAll by remember { mutableStateOf(false) }
     var expandedMeal by remember { mutableStateOf<String?>(null) }
@@ -169,7 +221,9 @@ fun MealPlanCard(
                         meal = meal,
                         state = mealStates[meal.name] ?: SaveState.IDLE,
                         expanded = expandedMeal == meal.name,
-                        onToggle = { expandedMeal = if (expandedMeal == meal.name) null else meal.name },
+                        onToggle = {
+                            expandedMeal = if (expandedMeal == meal.name) null else meal.name
+                        },
                         onSave = { saveMeal(meal) },
                     )
                 }
@@ -197,7 +251,6 @@ fun MealPlanCard(
 fun QuickLogCard(
     entry: SingleLogResponse,
     onSave: suspend () -> Unit,
-    onEdit: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -260,8 +313,8 @@ fun QuickLogCard(
                 ) {
                     listOf(
                         Triple("Protein", entry.entry.proteinG, MealCyan),
-                        Triple("Carbs",   entry.entry.carbsG,   MealVolt),
-                        Triple("Fat",     entry.entry.fatsG,    KineticTertiary),
+                        Triple("Carbs", entry.entry.carbsG, MealVolt),
+                        Triple("Fat", entry.entry.fatsG, KineticTertiary),
                     ).forEach { (label, value, color) ->
                         MacroChip(label, value, color, Modifier.weight(1f))
                     }
@@ -276,7 +329,6 @@ fun QuickLogCard(
                         .padding(horizontal = 16.dp, vertical = 11.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ConfidencePips(confidence = entry.entry.confidence)
                     Text(
                         text = entry.entry.note,
                         color = MealGray,
@@ -294,7 +346,6 @@ fun QuickLogCard(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    GhostButton(label = "Edit", onClick = onEdit, modifier = Modifier.weight(1f))
                     SaveButton(
                         state = saveState,
                         idleLabel = "+ Log This",
@@ -310,7 +361,7 @@ fun QuickLogCard(
                                 showToast = false
                             }
                         },
-                        modifier = Modifier.weight(2f),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -339,7 +390,14 @@ fun MultiLogCard(
 ) {
     val scope = rememberCoroutineScope()
     val entryStates = remember {
-        mutableStateMapOf<Int, SaveState>().apply { data.entries.indices.forEach { put(it, SaveState.IDLE) } }
+        mutableStateMapOf<Int, SaveState>().apply {
+            data.entries.indices.forEach {
+                put(
+                    it,
+                    SaveState.IDLE
+                )
+            }
+        }
     }
     var savingAll by remember { mutableStateOf(false) }
     var allSaved by remember { mutableStateOf(false) }
@@ -470,8 +528,17 @@ fun DaySummaryCard(plan: MealPlan) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
-                    Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(MealVolt))
-                    Text(plan.goal.uppercase().replace("_", " "), color = MealVolt, fontSize = 11.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.7.sp)
+                    Box(Modifier
+                        .size(5.dp)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(MealVolt))
+                    Text(
+                        plan.goal.uppercase().replace("_", " "),
+                        color = MealVolt,
+                        fontSize = 11.sp,
+                        fontFamily = SpaceGroteskFamily,
+                        letterSpacing = 0.7.sp
+                    )
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -483,7 +550,13 @@ fun DaySummaryCard(plan: MealPlan) {
                     fontWeight = FontWeight.Bold,
                     lineHeight = 30.sp,
                 )
-                Text("KCAL / DAY", color = MealGray, fontSize = 10.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.8.sp)
+                Text(
+                    "KCAL / DAY",
+                    color = MealGray,
+                    fontSize = 10.sp,
+                    fontFamily = SpaceGroteskFamily,
+                    letterSpacing = 0.8.sp
+                )
             }
         }
         KPDivider()
@@ -496,8 +569,8 @@ fun DaySummaryCard(plan: MealPlan) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MacroChip("Protein", plan.macros.proteinG, MealCyan, Modifier.weight(1f))
-            MacroChip("Carbs",   plan.macros.carbsG,   MealVolt, Modifier.weight(1f))
-            MacroChip("Fats",    plan.macros.fatsG,    KineticTertiary, Modifier.weight(1f))
+            MacroChip("Carbs", plan.macros.carbsG, MealVolt, Modifier.weight(1f))
+            MacroChip("Fats", plan.macros.fatsG, KineticTertiary, Modifier.weight(1f))
         }
     }
 }
@@ -553,31 +626,88 @@ fun MealRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(meal.name, color = MealWhite, fontSize = 14.sp, fontFamily = LexendFamily, fontWeight = FontWeight.SemiBold)
-                        Text(meal.time, color = MealGray,   fontSize = 10.sp, fontFamily = SpaceGroteskFamily)
+                        Text(
+                            meal.name,
+                            color = MealWhite,
+                            fontSize = 14.sp,
+                            fontFamily = LexendFamily,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            meal.time,
+                            color = MealGray,
+                            fontSize = 10.sp,
+                            fontFamily = SpaceGroteskFamily
+                        )
                     }
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         val calories = meal.items.sumOf { it.calories }
-                        Text(calories.formatCalories(), color = accent.color, fontSize = 17.sp, fontFamily = LexendFamily, fontWeight = FontWeight.Bold, lineHeight = 17.sp)
-                        Text("kcal", color = MealGray, fontSize = 9.sp, fontFamily = SpaceGroteskFamily, modifier = Modifier.padding(bottom = 1.dp))
+                        Text(
+                            calories.formatCalories(),
+                            color = accent.color,
+                            fontSize = 17.sp,
+                            fontFamily = LexendFamily,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 17.sp
+                        )
+                        Text(
+                            "kcal",
+                            color = MealGray,
+                            fontSize = 9.sp,
+                            fontFamily = SpaceGroteskFamily,
+                            modifier = Modifier.padding(bottom = 1.dp)
+                        )
                     }
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(Modifier.size(6.dp).clip(CircleShape).background(MealCyan))
-                        Text("P: ${meal.items.sumOf { it.proteinG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MealCyan))
+                        Text(
+                            "P: ${meal.items.sumOf { it.proteinG }.formatMacroGrams()}",
+                            color = MealWhite,
+                            fontSize = 11.sp,
+                            fontFamily = SpaceGroteskFamily
+                        )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(Modifier.size(6.dp).clip(CircleShape).background(MealVolt))
-                        Text("C: ${meal.items.sumOf { it.carbsG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MealVolt))
+                        Text(
+                            "C: ${meal.items.sumOf { it.carbsG }.formatMacroGrams()}",
+                            color = MealWhite,
+                            fontSize = 11.sp,
+                            fontFamily = SpaceGroteskFamily
+                        )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(Modifier.size(6.dp).clip(CircleShape).background(KineticTertiary))
-                        Text("F: ${meal.items.sumOf { it.fatsG }.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(KineticTertiary))
+                        Text(
+                            "F: ${meal.items.sumOf { it.fatsG }.formatMacroGrams()}",
+                            color = MealWhite,
+                            fontSize = 11.sp,
+                            fontFamily = SpaceGroteskFamily
+                        )
                     }
                 }
             }
@@ -588,7 +718,7 @@ fun MealRow(
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically(tween(300, easing = FastOutSlowInEasing)),
-            exit  = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
+            exit = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
         ) {
             Column(modifier = Modifier.padding(bottom = 13.dp)) {
                 // Items list
@@ -614,14 +744,13 @@ fun MealRow(
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    GhostButton(label = "Edit", onClick = {}, modifier = Modifier.weight(1f))
                     SaveButton(
                         state = state,
                         idleLabel = "+ Add ${meal.name}",
                         savedLabel = "${meal.name} Added",
                         accentColor = accent.color,
                         onClick = onSave,
-                        modifier = Modifier.weight(2f),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -633,9 +762,22 @@ fun MealRow(
 
 @Composable
 fun AiCoachLabel(text: String, color: Color = MealVolt) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Text(text.uppercase(), color = color, fontSize = 10.sp, fontFamily = SpaceGroteskFamily, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(Modifier
+            .size(6.dp)
+            .clip(CircleShape)
+            .background(color))
+        Text(
+            text.uppercase(),
+            color = color,
+            fontSize = 10.sp,
+            fontFamily = SpaceGroteskFamily,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
     }
 }
 
@@ -645,11 +787,24 @@ fun AiTextBubble(text: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+            .clip(
+                RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 16.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 16.dp
+                )
+            )
             .background(colors.surfaceContainerHigh)
             .padding(14.dp)
     ) {
-        Text(text = text, color = MealWhite, fontSize = 13.sp, fontFamily = PlusJakartaSansFamily, lineHeight = 20.sp)
+        Text(
+            text = text,
+            color = MealWhite,
+            fontSize = 13.sp,
+            fontFamily = PlusJakartaSansFamily,
+            lineHeight = 20.sp
+        )
     }
 }
 
@@ -664,21 +819,53 @@ fun MacroChip(label: String, value: Double, color: Color, modifier: Modifier = M
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(label.uppercase(), color = MealGray, fontSize = 8.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.5.sp)
-        Text(value.formatMacroGramsOneDecimal().uppercase(), color = color, fontSize = 13.sp, fontFamily = LexendFamily, fontWeight = FontWeight.Bold)
+        Text(
+            label.uppercase(),
+            color = MealGray,
+            fontSize = 8.sp,
+            fontFamily = SpaceGroteskFamily,
+            letterSpacing = 0.5.sp
+        )
+        Text(
+            value.formatMacroGramsOneDecimal().uppercase(),
+            color = color,
+            fontSize = 13.sp,
+            fontFamily = LexendFamily,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Composable
-fun MacroBar(label: String, value: Double, total: Double, color: Color, slim: Boolean = false, modifier: Modifier = Modifier) {
+fun MacroBar(
+    label: String,
+    value: Double,
+    total: Double,
+    color: Color,
+    slim: Boolean = false,
+    modifier: Modifier = Modifier
+) {
     val colors = KineticTheme.colors
     val progress = if (total > 0) (value / total).toFloat() else 0f
-    
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(if (slim) 3.dp else 5.dp)) {
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(if (slim) 3.dp else 5.dp)
+    ) {
         if (!slim) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(label, color = MealDescription, fontSize = 9.sp, fontFamily = SpaceGroteskFamily)
-                Text(value.formatMacroGramsOneDecimal(), color = MealWhite, fontSize = 9.sp, fontFamily = SpaceGroteskFamily)
+                Text(
+                    label,
+                    color = MealDescription,
+                    fontSize = 9.sp,
+                    fontFamily = SpaceGroteskFamily
+                )
+                Text(
+                    value.formatMacroGramsOneDecimal(),
+                    color = MealWhite,
+                    fontSize = 9.sp,
+                    fontFamily = SpaceGroteskFamily
+                )
             }
         }
         Box(
@@ -716,7 +903,13 @@ fun GhostButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifie
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = MealWhite, fontSize = 12.sp, fontFamily = SpaceGroteskFamily, fontWeight = FontWeight.Bold)
+        Text(
+            label,
+            color = MealWhite,
+            fontSize = 12.sp,
+            fontFamily = SpaceGroteskFamily,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -732,7 +925,7 @@ fun SaveButton(
     val colors = KineticTheme.colors
     val isSaving = state == SaveState.SAVING
     val isSaved = state == SaveState.SAVED
-    
+
     val bg = when {
         isSaved -> accentColor.copy(alpha = 0.1f)
         isSaving -> accentColor.copy(alpha = 0.2f)
@@ -744,7 +937,13 @@ fun SaveButton(
         modifier = modifier
             .clip(RoundedCornerShape(11.dp))
             .background(bg)
-            .then(if (isSaved || isSaving) Modifier.border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(11.dp)) else Modifier)
+            .then(
+                if (isSaved || isSaving) Modifier.border(
+                    1.dp,
+                    accentColor.copy(alpha = 0.3f),
+                    RoundedCornerShape(11.dp)
+                ) else Modifier
+            )
             .clickable(enabled = !isSaving && !isSaved, onClick = onClick)
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
@@ -768,17 +967,47 @@ fun FoodItemRow(item: MealItem, accentColor: Color) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Box(Modifier.size(5.dp).clip(CircleShape).background(accentColor))
+        Box(Modifier
+            .size(5.dp)
+            .clip(CircleShape)
+            .background(accentColor))
         Column(Modifier.weight(1f)) {
-            Text(item.food, color = MealWhite, fontSize = 13.sp, fontFamily = PlusJakartaSansFamily, fontWeight = FontWeight.Medium)
+            Text(
+                item.food,
+                color = MealWhite,
+                fontSize = 13.sp,
+                fontFamily = PlusJakartaSansFamily,
+                fontWeight = FontWeight.Medium
+            )
             Text(item.quantity, color = MealGray, fontSize = 10.sp, fontFamily = SpaceGroteskFamily)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${item.calories.formatCalories()} kcal", color = MealDescription, fontSize = 11.sp, fontFamily = SpaceGroteskFamily, fontWeight = FontWeight.Bold)
+            Text(
+                "${item.calories.formatCalories()} kcal",
+                color = MealDescription,
+                fontSize = 11.sp,
+                fontFamily = SpaceGroteskFamily,
+                fontWeight = FontWeight.Bold
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("P: ${item.proteinG.formatMacroGrams()}", color = MealCyan, fontSize = 9.sp, fontFamily = SpaceGroteskFamily)
-                Text("C: ${item.carbsG.formatMacroGrams()}", color = MealVolt, fontSize = 9.sp, fontFamily = SpaceGroteskFamily)
-                Text("F: ${item.fatsG.formatMacroGrams()}", color = KineticTertiary, fontSize = 9.sp, fontFamily = SpaceGroteskFamily)
+                Text(
+                    "P: ${item.proteinG.formatMacroGrams()}",
+                    color = MealCyan,
+                    fontSize = 9.sp,
+                    fontFamily = SpaceGroteskFamily
+                )
+                Text(
+                    "C: ${item.carbsG.formatMacroGrams()}",
+                    color = MealVolt,
+                    fontSize = 9.sp,
+                    fontFamily = SpaceGroteskFamily
+                )
+                Text(
+                    "F: ${item.fatsG.formatMacroGrams()}",
+                    color = KineticTertiary,
+                    fontSize = 9.sp,
+                    fontFamily = SpaceGroteskFamily
+                )
             }
         }
     }
@@ -793,7 +1022,13 @@ fun DiscardLink(label: String, onClick: () -> Unit) {
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = MealGray, fontSize = 11.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.5.sp)
+        Text(
+            label,
+            color = MealGray,
+            fontSize = 11.sp,
+            fontFamily = SpaceGroteskFamily,
+            letterSpacing = 0.5.sp
+        )
     }
 }
 
@@ -808,23 +1043,42 @@ fun SaveAllFooter(allSaved: Boolean, saving: Boolean, onClick: () -> Unit) {
     ) {
         if (allSaved) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(MealVolt))
+                Box(Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(MealVolt))
                 Spacer(Modifier.width(8.dp))
-                Text("FULL DAY PLAN SAVED", color = MealVolt, fontSize = 12.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 1.sp)
+                Text(
+                    "FULL DAY PLAN SAVED",
+                    color = MealVolt,
+                    fontSize = 12.sp,
+                    fontFamily = SpaceGroteskFamily,
+                    letterSpacing = 1.sp
+                )
             }
         } else {
-            val bg by animateColorAsState(if (saving) MealVolt.copy(alpha = 0.15f) else MealVolt, tween(250), label = "saveAllBg")
+            val bg by animateColorAsState(
+                if (saving) MealVolt.copy(alpha = 0.15f) else MealVolt,
+                tween(250),
+                label = "saveAllBg"
+            )
             val textColor = if (saving) MealVolt else Color(0xFF111111)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
                     .background(bg)
-                    .border(1.dp, if (saving) MealVolt.copy(alpha = 0.3f) else Color.Transparent, RoundedCornerShape(11.dp))
+                    .border(
+                        1.dp,
+                        if (saving) MealVolt.copy(alpha = 0.3f) else Color.Transparent,
+                        RoundedCornerShape(11.dp)
+                    )
                     .clickable(enabled = !saving, onClick = onClick)
                     .padding(vertical = 13.dp),
                 contentAlignment = Alignment.Center,
@@ -848,8 +1102,13 @@ fun KPToast(visible: Boolean, text: String, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = visible,
         modifier = modifier.padding(bottom = 28.dp),
-        enter = fadeIn(tween(250)) + slideInVertically(tween(320, easing = FastOutSlowInEasing)) { it / 2 },
-        exit  = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 },
+        enter = fadeIn(tween(250)) + slideInVertically(
+            tween(
+                320,
+                easing = FastOutSlowInEasing
+            )
+        ) { it / 2 },
+        exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 },
     ) {
         Row(
             modifier = Modifier
@@ -860,8 +1119,17 @@ fun KPToast(visible: Boolean, text: String, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(Modifier.size(7.dp).clip(CircleShape).background(MealVolt))
-            Text(text, color = MealVolt, fontSize = 11.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.7.sp)
+            Box(Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(MealVolt))
+            Text(
+                text,
+                color = MealVolt,
+                fontSize = 11.sp,
+                fontFamily = SpaceGroteskFamily,
+                letterSpacing = 0.7.sp
+            )
         }
     }
 }
@@ -938,24 +1206,6 @@ private fun MealTimeTag(text: String, accent: MealAccent) {
 }
 
 @Composable
-fun ConfidencePips(confidence: Int, pipColor: Color = MealVolt) {
-    val filledPips = ((confidence / 100f) * 5).toInt().coerceIn(0, 5)
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            repeat(5) { i ->
-                Box(
-                    Modifier
-                        .size(width = 12.dp, height = 3.dp)
-                        .clip(RoundedCornerShape(1.dp))
-                        .background(if (i < filledPips) pipColor else KineticTheme.colors.surfaceContainerHighest)
-                )
-            }
-        }
-        Text("${confidence}% MATCH", color = MealGray, fontSize = 9.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.5.sp)
-    }
-}
-
-@Composable
 private fun ParsedFromBubble(text: String) {
     val colors = KineticTheme.colors
     Row(
@@ -1011,7 +1261,6 @@ private fun MultiLogSummaryHeader(data: MultiLogResponse) {
                 fontFamily = SpaceGroteskFamily,
                 letterSpacing = 0.8.sp,
             )
-            ConfidencePips(confidence = data.confidence, pipColor = Color(0xFFFFBF00))
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
@@ -1022,7 +1271,13 @@ private fun MultiLogSummaryHeader(data: MultiLogResponse) {
                 fontWeight = FontWeight.Bold,
                 lineHeight = 26.sp,
             )
-            Text("TOTAL KCAL", color = MealGray, fontSize = 9.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.8.sp)
+            Text(
+                "TOTAL KCAL",
+                color = MealGray,
+                fontSize = 9.sp,
+                fontFamily = SpaceGroteskFamily,
+                letterSpacing = 0.8.sp
+            )
         }
     }
 }
@@ -1090,7 +1345,13 @@ private fun LogEntryRow(
                         fontWeight = FontWeight.Bold,
                         lineHeight = 20.sp,
                     )
-                    Text("KCAL", color = MealGray, fontSize = 9.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 0.8.sp)
+                    Text(
+                        "KCAL",
+                        color = MealGray,
+                        fontSize = 9.sp,
+                        fontFamily = SpaceGroteskFamily,
+                        letterSpacing = 0.8.sp
+                    )
                 }
             }
 
@@ -1101,17 +1362,50 @@ private fun LogEntryRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(6.dp).clip(CircleShape).background(MealCyan))
-                    Text("P: ${entry.totalProtein.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(MealCyan))
+                    Text(
+                        "P: ${entry.totalProtein.formatMacroGrams()}",
+                        color = MealWhite,
+                        fontSize = 11.sp,
+                        fontFamily = SpaceGroteskFamily
+                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(6.dp).clip(CircleShape).background(MealVolt))
-                    Text("C: ${entry.totalCarbs.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(MealVolt))
+                    Text(
+                        "C: ${entry.totalCarbs.formatMacroGrams()}",
+                        color = MealWhite,
+                        fontSize = 11.sp,
+                        fontFamily = SpaceGroteskFamily
+                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(6.dp).clip(CircleShape).background(KineticTertiary))
-                    Text("F: ${entry.totalFats.formatMacroGrams()}", color = MealWhite, fontSize = 11.sp, fontFamily = SpaceGroteskFamily)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(KineticTertiary))
+                    Text(
+                        "F: ${entry.totalFats.formatMacroGrams()}",
+                        color = MealWhite,
+                        fontSize = 11.sp,
+                        fontFamily = SpaceGroteskFamily
+                    )
                 }
             }
 
@@ -1158,7 +1452,7 @@ private fun LogEntryRow(
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically(tween(300, easing = FastOutSlowInEasing)),
-            exit  = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
+            exit = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
         ) {
             Column(
                 modifier = Modifier
@@ -1181,14 +1475,13 @@ private fun LogEntryRow(
                 .padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            GhostButton(label = "Edit", onClick = {}, modifier = Modifier.weight(1f))
             SaveButton(
                 state = state,
                 idleLabel = "+ Log ${entry.mealTime}",
                 savedLabel = "${entry.mealTime} Logged",
                 accentColor = accent.color,
                 onClick = onSave,
-                modifier = Modifier.weight(2f),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -1212,13 +1505,24 @@ private fun MultiLogSaveAllFooter(allDone: Boolean, saving: Boolean, onClick: ()
     ) {
         if (allDone) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 11.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 11.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(MealVolt))
+                Box(Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(MealVolt))
                 Spacer(Modifier.width(8.dp))
-                Text("ALL MEALS LOGGED", color = MealVolt, fontSize = 12.sp, fontFamily = SpaceGroteskFamily, letterSpacing = 1.sp)
+                Text(
+                    "ALL MEALS LOGGED",
+                    color = MealVolt,
+                    fontSize = 12.sp,
+                    fontFamily = SpaceGroteskFamily,
+                    letterSpacing = 1.sp
+                )
             }
         } else {
             val bg by animateColorAsState(
@@ -1232,7 +1536,11 @@ private fun MultiLogSaveAllFooter(allDone: Boolean, saving: Boolean, onClick: ()
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
                     .background(bg)
-                    .border(1.dp, if (saving) MealVolt.copy(alpha = 0.3f) else Color.Transparent, RoundedCornerShape(11.dp))
+                    .border(
+                        1.dp,
+                        if (saving) MealVolt.copy(alpha = 0.3f) else Color.Transparent,
+                        RoundedCornerShape(11.dp)
+                    )
                     .clickable(enabled = !saving, onClick = onClick)
                     .padding(vertical = 13.dp),
                 contentAlignment = Alignment.Center,

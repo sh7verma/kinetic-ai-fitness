@@ -1,6 +1,7 @@
 package com.shverma.kinetic.di
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.shverma.kinetic.data.auth.GoogleAuthRepository
 import com.shverma.kinetic.data.auth.GoogleAuthRepositoryImpl
 import dagger.Binds
@@ -17,6 +18,10 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 }
 
 @Module

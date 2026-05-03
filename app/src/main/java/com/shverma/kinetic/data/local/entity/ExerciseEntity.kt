@@ -3,20 +3,18 @@ package com.shverma.kinetic.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
-import com.shverma.kinetic.data.model.MealItem
 
 @Serializable
-@Entity(tableName = "meals")
-data class MealEntity(
+@Entity(tableName = "exercises")
+data class ExerciseEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val time: String,
+    val sets: Int,
+    val reps: String,
+    val restSecs: Int,
+    val equipment: String,
+    val cue: String,
     val date: String,
-    val items: List<MealItem>,
-    val totalCalories: Double,
-    val totalProtein: Double,
-    val totalCarbs: Double,
-    val totalFats: Double,
     val timestamp: Long = System.currentTimeMillis()
 )

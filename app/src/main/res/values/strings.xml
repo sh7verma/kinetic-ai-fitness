@@ -3,7 +3,7 @@
 
     <!-- Replace with your Web Client ID from Firebase Console →
          Authentication → Sign-in method → Google → Web SDK configuration -->
-    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID_HERE</string>
+    <string name="default_web_client_id">585173942994-r7h8odvmqv1qmvjrvdbr2qkbrda0mv3u.apps.googleusercontent.com</string>
 
     <!-- Generic Errors -->
     <string name="error_unknown">Something went wrong. Please try again.</string>

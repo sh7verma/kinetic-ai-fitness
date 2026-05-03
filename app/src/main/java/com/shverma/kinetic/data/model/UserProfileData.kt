@@ -67,10 +67,10 @@ data class UserProfileData(
     val commitmentDays: Double = 4.0,
     val equipment: String = "FULL GYM",
     val dietaryGoal: DietaryGoal = DietaryGoal.MUSCLE_GAIN,
-    val dietTypes: Set<String> = setOf("BALANCED"),
-    val allergies: Set<String> = emptySet(),
+    val dietTypes: List<String> = listOf("BALANCED"),
+    val allergies: List<String> = emptyList(),
     val activityLevel: String = "ACTIVE",
-    val cuisines: Set<String> = setOf("MEDITERRANEAN"),
+    val cuisines: List<String> = listOf("MEDITERRANEAN"),
     val isCompleted: Boolean = false
 ) {
     fun calculateTargetCalories(): Double {

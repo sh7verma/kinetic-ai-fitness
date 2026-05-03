@@ -2,8 +2,7 @@ package com.shverma.kinetic.ui.components
 
 import android.graphics.BlurMaskFilter
 import android.os.Build
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +18,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -555,5 +555,66 @@ fun KineticUpNextCard(
                 )
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────
+// DotLoader
+// ─────────────────────────────────────────
+
+@Composable
+fun DotLoader(
+    modifier: Modifier = Modifier,
+    dotSize: Dp = 6.dp,
+    dotColor: Color = Color.Black,
+    spacing: Dp = 4.dp,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "dot_loader")
+    
+    @Composable
+    fun animateDot(delay: Int): State<Float> {
+        return infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 1000
+                    0f at delay with LinearEasing
+                    1f at delay + 300 with LinearEasing
+                    0f at delay + 600 with LinearEasing
+                },
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "dot_alpha"
+        )
+    }
+
+    val dot1Alpha by animateDot(0)
+    val dot2Alpha by animateDot(150)
+    val dot3Alpha by animateDot(300)
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(dotSize)
+                .graphicsLayer { alpha = dot1Alpha }
+                .background(dotColor, CircleShape)
+        )
+        Box(
+            Modifier
+                .size(dotSize)
+                .graphicsLayer { alpha = dot2Alpha }
+                .background(dotColor, CircleShape)
+        )
+        Box(
+            Modifier
+                .size(dotSize)
+                .graphicsLayer { alpha = dot3Alpha }
+                .background(dotColor, CircleShape)
+        )
     }
 }

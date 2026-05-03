@@ -29,7 +29,7 @@ data class LogEntryDetails(
     val carbsG: Double,
     @SerialName("fats_g")
     val fatsG: Double,
-    val confidence: Int,
+    val confidence: Double,
     val note: String
 )
 
@@ -41,7 +41,7 @@ data class MultiLogResponse(
     val entries: List<LogEntry>,
     @SerialName("total_calories")
     val totalCalories: Double,
-    val confidence: Int
+    val confidence: Double
 )
 
 @Serializable
@@ -58,29 +58,29 @@ data class LogEntry(
 
 @Serializable
 data class MealPlan(
-    val date: String,
-    val goal: String, // muscle_gain|fat_loss|maintenance|performance
+    val date: String = "",
+    val goal: String = "", // muscle_gain|fat_loss|maintenance|performance
     @SerialName("total_calories")
-    val totalCalories: Double,
-    val macros: Macros,
-    val meals: List<Meal>
+    val totalCalories: Double = 0.0,
+    val macros: Macros = Macros(),
+    val meals: List<Meal> = emptyList()
 )
 
 @Serializable
 data class Macros(
     @SerialName("protein_g")
-    val proteinG: Double,
+    val proteinG: Double = 0.0,
     @SerialName("carbs_g")
-    val carbsG: Double,
+    val carbsG: Double = 0.0,
     @SerialName("fats_g")
-    val fatsG: Double
+    val fatsG: Double = 0.0
 )
 
 @Serializable
 data class Meal(
-    val name: String, // Breakfast|Lunch|Dinner|Pre-workout|Post-workout|Snack
-    val time: String,
-    val items: List<MealItem>
+    val name: String = "", // Breakfast|Lunch|Dinner|Pre-workout|Post-workout|Snack
+    val time: String = "",
+    val items: List<MealItem> = emptyList()
 )
 
 fun Meal.toMealEntity(date: String): com.shverma.kinetic.data.local.entity.MealEntity {
@@ -98,13 +98,13 @@ fun Meal.toMealEntity(date: String): com.shverma.kinetic.data.local.entity.MealE
 
 @Serializable
 data class MealItem(
-    val food: String,
-    val quantity: String,
-    val calories: Double,
+    val food: String = "",
+    val quantity: String = "",
+    val calories: Double = 0.0,
     @SerialName("protein_g")
-    val proteinG: Double,
+    val proteinG: Double = 0.0,
     @SerialName("carbs_g")
-    val carbsG: Double,
+    val carbsG: Double = 0.0,
     @SerialName("fats_g")
-    val fatsG: Double
+    val fatsG: Double = 0.0
 )

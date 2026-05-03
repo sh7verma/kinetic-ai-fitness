@@ -28,7 +28,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -51,11 +51,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shverma.kinetic.ui.components.TonalActionButton
 import com.shverma.kinetic.ui.theme.KineticColors
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.LexendFamily
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
+import com.shverma.kinetic.utils.findActivity
+import com.shverma.kinetic.ui.components.DotLoader
 
 // ─────────────────────────────────────────
 // WelcomeScreen — Kinetic Volt entry point
@@ -63,8 +64,9 @@ import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 
 @Composable
 fun WelcomeScreen(
-    onGetStarted: () -> Unit,
-    onSignIn: () -> Unit,
+    snackBarHostState: SnackbarHostState? = null,
+    onNavigateToOnboarding: () -> Unit,
+    onNavigateToLanding: () -> Unit,
     viewModel: WelcomeViewModel = hiltViewModel(),
 ) {
     val colors = KineticTheme.colors
@@ -75,7 +77,20 @@ fun WelcomeScreen(
     LaunchedEffect(Unit) { entered = true }
 
     LaunchedEffect(authState) {
-        if (authState is AuthState.Success) onGetStarted()
+        when (val state = authState) {
+            is AuthState.Success -> {
+                if (state.hasProfile) {
+                    onNavigateToLanding()
+                } else {
+                    onNavigateToOnboarding()
+                }
+            }
+            is AuthState.Error -> {
+                snackBarHostState?.showSnackbar(state.message)
+                viewModel.clearError()
+            }
+            else -> {}
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -142,9 +157,11 @@ fun WelcomeScreen(
         ) {
             ActionHub(
                 colors = colors,
-                onGetStarted = onGetStarted,
-                onSignIn = onSignIn,
-                onGoogleSignIn = { viewModel.signInWithGoogle(context as Activity) },
+                onGoogleSignIn = {
+                    context.findActivity()?.let {
+                        viewModel.signInWithGoogle(it)
+                    }
+                },
                 isLoading = authState is AuthState.Loading,
             )
         }
@@ -267,8 +284,6 @@ private fun ValueProposition(colors: KineticColors) {
 @Composable
 private fun ActionHub(
     colors: KineticColors,
-    onGetStarted: () -> Unit,
-    onSignIn: () -> Unit,
     onGoogleSignIn: () -> Unit,
     isLoading: Boolean,
 ) {
@@ -292,52 +307,13 @@ private fun ActionHub(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Primary CTA — solid volt fill, maximum contrast
+            // Primary CTA — Google Login styled as Get Started
             GetStartedButton(
-                onClick = onGetStarted,
+                text = "GET STARTED WITH GOOGLE",
+                isLoading = isLoading,
+                onClick = onGoogleSignIn,
                 modifier = Modifier.fillMaxWidth(),
             )
-
-            // Divider + "or" label
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = Color(0x20FFFFFF),
-                )
-                Text(
-                    text = "or",
-                    fontFamily = SpaceGroteskFamily,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 12.sp,
-                    color = colors.onSurfaceVariant,
-                )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = Color(0x20FFFFFF),
-                )
-            }
-
-            // Secondary row — Login + Google
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                TonalActionButton(
-                    text = "LOGIN",
-                    onClick = onSignIn,
-                    modifier = Modifier.weight(1f),
-                )
-                TonalActionButton(
-                    text = if (isLoading) "..." else "GOOGLE",
-                    onClick = onGoogleSignIn,
-                    modifier = Modifier.weight(1f),
-                    leadingDot = !isLoading,
-                )
-            }
 
             Spacer(Modifier.height(4.dp))
         }
@@ -350,8 +326,10 @@ private fun ActionHub(
 
 @Composable
 private fun GetStartedButton(
+    text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -359,23 +337,28 @@ private fun GetStartedButton(
             .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFFCAFD00))
             .clickable(
+                enabled = !isLoading,
                 indication = ripple(color = Color(0x33000000)),
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
-        Text(
-            text = buildAnnotatedString {
-                append("GET STARTED")
-                withStyle(SpanStyle(letterSpacing = 4.sp)) { append("  ") }
-                append("→")
-            },
-            fontFamily = SpaceGroteskFamily,
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
-            letterSpacing = 1.5.sp,
-            color = Color(0xFF0E1A00),
-        )
+        if (isLoading) {
+            DotLoader(dotColor = Color(0xFF0E1A00))
+        } else {
+            Text(
+                text = buildAnnotatedString {
+                    append(text)
+                    withStyle(SpanStyle(letterSpacing = 4.sp)) { append("  ") }
+                    append("→")
+                },
+                fontFamily = SpaceGroteskFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                letterSpacing = 1.5.sp,
+                color = Color(0xFF0E1A00),
+            )
+        }
     }
 }

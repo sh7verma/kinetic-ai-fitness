@@ -195,7 +195,7 @@ val flavorCuisines = listOf(
 @Composable
 private fun CuisineGridSection(
     cuisines: List<FlavorCuisine>,
-    selectedCuisines: Set<String>,
+    selectedCuisines: List<String>,
     onCuisineToggled: (String) -> Unit
 ) {
     Column(

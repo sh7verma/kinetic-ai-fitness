@@ -1,6 +1,7 @@
 package com.shverma.kinetic.di
 
 import com.shverma.kinetic.data.network.ApiService
+import com.shverma.kinetic.data.network.OpenAIService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,4 +45,14 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService =
         retrofit.create(ApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideOpenAIService(okHttpClient: OkHttpClient): OpenAIService =
+        Retrofit.Builder()
+            .baseUrl("https://api.openai.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(OpenAIService::class.java)
 }

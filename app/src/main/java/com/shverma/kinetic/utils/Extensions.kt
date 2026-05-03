@@ -1,5 +1,8 @@
 package com.shverma.kinetic.utils
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -48,4 +51,11 @@ fun Float.formatPercentage(): String = this.toDouble().formatPercentage()
 // Progress calculation helpers
 fun calculateProgress(current: Double, target: Double): Float {
     return if (target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f
+}
+
+// Activity finder
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

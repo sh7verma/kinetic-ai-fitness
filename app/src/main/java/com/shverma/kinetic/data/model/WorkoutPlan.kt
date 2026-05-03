@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class WorkoutPlanResponse(
+    val type: String = "workout",
     @SerialName("workout")
     val workout: WorkoutPlan
 )
@@ -15,7 +16,6 @@ data class WorkoutPlan(
     @SerialName("duration_mins")
     val durationMins: Int,
     val difficulty: String, // beginner|intermediate|advanced
-    val split: String, // push|pull|legs|full_body|cardio|core
     @SerialName("target_muscles")
     val targetMuscles: List<String>,
     val exercises: List<Exercise>

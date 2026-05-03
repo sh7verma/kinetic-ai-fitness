@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "585173942994-p6dlvils7jrriann4spqp4ced0jf4jpq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.shverma.kinetic",
+            "certificate_hash": "81d8eac83665286af16d062e3f04534e0f0f6094"
+          }
+        },
+        {
           "client_id": "585173942994-r7h8odvmqv1qmvjrvdbr2qkbrda0mv3u.apps.googleusercontent.com",
           "client_type": 3
         }

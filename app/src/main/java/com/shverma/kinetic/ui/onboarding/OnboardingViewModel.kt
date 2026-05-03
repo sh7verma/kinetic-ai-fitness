@@ -30,12 +30,12 @@ data class OnboardingUiState(
     val equipment: String = "FULL GYM",
     // Meal Setup Data
     val selectedGoal: DietaryGoal = DietaryGoal.MUSCLE_GAIN,
-    val selectedDietTypes: Set<String> = setOf("BALANCED"),
-    val selectedAllergies: Set<String> = emptySet(),
+    val selectedDietTypes: List<String> = listOf("BALANCED"),
+    val selectedAllergies: List<String> = emptyList(),
     // Activity Level Data
     val selectedActivityLevel: String = "ACTIVE",
     // Cuisine Preference Data
-    val selectedCuisines: Set<String> = setOf("MEDITERRANEAN")
+    val selectedCuisines: List<String> = listOf("MEDITERRANEAN")
 )
 
 @HiltViewModel
@@ -106,6 +106,7 @@ class OnboardingViewModel @Inject constructor(
                 isCompleted = state.currentStep == OnboardingStep.entries.last()
             )
             userProfileRepository.saveUserProfileData(data)
+            userProfileRepository.saveUserProfileToFirestore(data)
         }
     }
 
@@ -171,13 +172,13 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             val currentTypes = state.selectedDietTypes
             val newTypes = if (key == "BALANCED") {
-                setOf("BALANCED")
+                listOf("BALANCED")
             } else {
                 val mutable = currentTypes.toMutableSet().also {
                     it.remove("BALANCED")
                     if (it.contains(key)) it.remove(key) else it.add(key)
                 }
-                if (mutable.isEmpty()) setOf("BALANCED") else mutable
+                if (mutable.isEmpty()) listOf("BALANCED") else mutable.toList()
             }
             state.copy(selectedDietTypes = newTypes)
         }
@@ -187,7 +188,7 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             val currentAllergies = state.selectedAllergies
             val newAllergies = if (currentAllergies.contains(allergy)) {
-                currentAllergies - allergy
+                currentAllergies.filter { it != allergy }
             } else {
                 currentAllergies + allergy
             }
@@ -204,7 +205,7 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             val currentCuisines = state.selectedCuisines
             val newCuisines = if (currentCuisines.contains(cuisine)) {
-                currentCuisines - cuisine
+                currentCuisines.filter { it != cuisine }
             } else {
                 currentCuisines + cuisine
             }
