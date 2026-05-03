@@ -7,11 +7,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 @Entity(tableName = "foods")
 data class FoodEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val name: String,
+    @PrimaryKey val name: String,
     val calories: Double,
     val protein: Double,
     val carbs: Double,
-    val fats: Double
+    val fats: Double,
+    val source: String = "usda", // usda | firestore | ai
+    val updatedAt: Long = System.currentTimeMillis()
 )

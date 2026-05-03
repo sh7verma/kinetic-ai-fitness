@@ -1,7 +1,10 @@
 package com.shverma.kinetic.data.repository
 
 import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
 import com.shverma.kinetic.BuildConfig
+import com.shverma.kinetic.data.local.dao.FoodDao
+import com.shverma.kinetic.data.local.entity.FoodEntity
 import com.shverma.kinetic.data.model.Macros
 import com.shverma.kinetic.data.model.MealItem
 import com.shverma.kinetic.data.model.MealPlan
@@ -12,44 +15,29 @@ import com.shverma.kinetic.data.network.OpenAIService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.double
-import kotlinx.serialization.json.jsonPrimitive
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NutritionEnricher @Inject constructor(
+    private val foodDao: FoodDao,
+    private val firestore: FirebaseFirestore,
+    private val foodResolver: FoodResolver,
     private val openAIService: OpenAIService
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
-    private val semaphore = Semaphore(5) // Max 5 parallel calls
-
-    // Thread-safe cache with TTL support
-    private val nutritionCache = ConcurrentHashMap<String, CachedMealItem>()
 
     // Metrics for monitoring
     private val apiCallCount = AtomicInteger(0)
     private val cacheHitCount = AtomicInteger(0)
     private val failureCount = AtomicInteger(0)
 
-    private data class CachedMealItem(
-        val item: MealItem,
-        val timestamp: Long = System.currentTimeMillis()
-    )
-
-
     companion object {
         private const val TAG = "NutritionEnricher"
-        private const val CACHE_TTL_MS = 10 * 60 * 1000L // 10 minutes
-        private const val TIMEOUT_MS = 5000L
         private const val DEFAULT_CALORIES = 100.0
         private const val DEFAULT_PROTEIN = 5.0
         private const val DEFAULT_CARBS = 10.0
@@ -74,32 +62,41 @@ class NutritionEnricher @Inject constructor(
             return@coroutineScope mealPlan
         }
 
-        // 2. Check cache first
+    // 2. Check Room first (cached + USDA + AI results are all in Room)
         val neededFromApi = mutableListOf<MealItem>()
         val cachedResults = mutableMapOf<String, MealItem>()
 
         itemsToEnrich.forEach { item ->
-            val key = createCacheKey(item)
-            val cached = nutritionCache[key]
-            if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL_MS) {
+            val resolvedName = foodResolver.resolve(item.food)
+            val local = foodDao.searchFoods(resolvedName).firstOrNull()
+
+            if (local != null) {
                 cacheHitCount.incrementAndGet()
-                cachedResults[key] = cached.item
+                val enriched = item.copy(
+                    calories = local.calories,
+                    proteinG = local.protein,
+                    carbsG = local.carbs,
+                    fatsG = local.fats
+                )
+                cachedResults[createCacheKey(item)] = enriched
             } else {
                 neededFromApi.add(item)
             }
         }
 
-        // 3. Fetch from API in batch if needed
+        // 3. Fetch from API if needed
         if (neededFromApi.isNotEmpty()) {
             try {
-                val apiResults = fetchBatchNutrition(neededFromApi)
-                apiResults.forEach { enriched ->
+                val resolvedResults = neededFromApi.map { item ->
+                    async { resolveAndFetch(item) }
+                }.awaitAll()
+
+                resolvedResults.forEach { enriched ->
                     val key = createCacheKey(enriched)
-                    nutritionCache[key] = CachedMealItem(enriched)
                     cachedResults[key] = enriched
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Batch enrichment failed: ${e.message}")
+                Log.e(TAG, "Enrichment failed: ${e.message}")
                 failureCount.addAndGet(neededFromApi.size)
                 neededFromApi.forEach { item ->
                     val key = createCacheKey(item)
@@ -136,45 +133,105 @@ class NutritionEnricher @Inject constructor(
         )
     }
 
-    private suspend fun fetchBatchNutrition(
-        items: List<MealItem>
-    ): List<MealItem> {
+    private suspend fun resolveAndFetch(item: MealItem): MealItem {
+        val resolvedName = foodResolver.resolve(item.food)
 
-        val request = OpenAIRequest(
-            model = "gpt-4o-mini",
-            messages = listOf(
-                OpenAIMessage("system", "Return JSON ONLY."),
-                OpenAIMessage("user", AIPrompts.buildBatchPrompt(items))
-            ),
-            maxCompletionTokens = 1000 // Increased for batch
-        )
+        // 1. Local DB (Room) - Note: Already checked in enrichMealPlanWithNutrition,
+        // but kept here for completeness if called directly.
+        val local = foodDao.searchFoods(resolvedName).firstOrNull()
+        if (local != null) {
+            return item.copy(
+                calories = local.calories,
+                proteinG = local.protein,
+                carbsG = local.carbs,
+                fatsG = local.fats
+            )
+        }
 
-        val response = openAIService.getChatCompletions(
-            auth = "Bearer ${BuildConfig.OPENAI_API_KEY}",
-            request = request
-        )
+        // 2. Firestore fallback
+        val remote = fetchFromFirestore(resolvedName)
+        if (remote != null) {
+            return item.copy(
+                calories = remote.calories,
+                proteinG = remote.protein,
+                carbsG = remote.carbs,
+                fatsG = remote.fats
+            )
+        }
 
-        val content = response.choices.firstOrNull()?.message?.content
-            ?: throw Exception("Empty batch response")
-
-        return parseBatchNutritionJson(content, items)
+        // 3. AI fallback (LAST)
+        return fetchSingleFromAI(item, resolvedName)
     }
 
-    private fun parseBatchNutritionJson(jsonStr: String, originalItems: List<MealItem>): List<MealItem> {
+    // 2. Try Firestore fallback
+    private suspend fun fetchFromFirestore(name: String): FoodEntity? {
         return try {
-            val cleanedJson = jsonStr.trim()
+            val doc = firestore.collection("foods")
+                .document(name)
+                .get()
+                .await()
+
+            if (doc.exists()) {
+                val entity = FoodEntity(
+                    name = doc.getString("name") ?: name,
+                    calories = doc.getDouble("calories") ?: 0.0,
+                    protein = doc.getDouble("protein") ?: 0.0,
+                    carbs = doc.getDouble("carbs") ?: 0.0,
+                    fats = doc.getDouble("fats") ?: 0.0,
+                    source = "firestore"
+                )
+                foodDao.insert(entity)
+                entity
+            } else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Firestore fetch failed for $name: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun fetchSingleFromAI(item: MealItem, resolvedName: String): MealItem {
+        return try {
+            val request = OpenAIRequest(
+                model = "gpt-4o-mini",
+                messages = listOf(
+                    OpenAIMessage("system", "Return JSON ONLY."),
+                    OpenAIMessage("user", AIPrompts.buildBatchPrompt(listOf(item)))
+                ),
+                maxCompletionTokens = 300
+            )
+
+            val response = openAIService.getChatCompletions(
+                auth = "Bearer ${BuildConfig.OPENAI_API_KEY}",
+                request = request
+            )
+
+            val content = response.choices.firstOrNull()?.message?.content
+                ?: throw Exception("Empty AI response")
+
+            val cleanedJson = content.trim()
                 .removePrefix("```json")
                 .removeSuffix("```")
                 .trim()
 
             val list = json.decodeFromString<List<MealItem>>(cleanedJson)
-            
-            // Map back to original items to preserve any other data if necessary
-            // or just return the parsed list if it matches 1:1
-            list
+            val aiResult = list.firstOrNull() ?: createFallbackItem(item)
+
+            // Save AI result to Room
+            foodDao.insert(
+                FoodEntity(
+                    name = resolvedName,
+                    calories = aiResult.calories,
+                    protein = aiResult.proteinG,
+                    carbs = aiResult.carbsG,
+                    fats = aiResult.fatsG,
+                    source = "ai"
+                )
+            )
+
+            aiResult
         } catch (e: Exception) {
-            Log.e(TAG, "Batch parsing failed for $jsonStr", e)
-            originalItems.map { createFallbackItem(it) }
+            Log.e(TAG, "AI fallback failed for ${item.food}: ${e.message}")
+            createFallbackItem(item)
         }
     }
 

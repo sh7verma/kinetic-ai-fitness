@@ -10,7 +10,7 @@ import com.shverma.kinetic.data.local.entity.ExerciseEntity
 import com.shverma.kinetic.data.local.entity.FoodEntity
 import com.shverma.kinetic.data.local.entity.MealEntity
 
-@Database(entities = [MealEntity::class, ExerciseEntity::class, FoodEntity::class], version = 3, exportSchema = false)
+@Database(entities = [MealEntity::class, ExerciseEntity::class, FoodEntity::class], version = 4, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun mealDao(): MealDao
