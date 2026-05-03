@@ -39,8 +39,28 @@ android {
     }
 
     buildTypes {
+        debug {
+            versionNameSuffix = "-debug"
+            buildConfigField("Boolean", "IS_DEBUG", "true")
+        }
+
+        create("staging") {
+            initWith(getByName("debug"))
+            versionNameSuffix = "-staging"
+
+            // staging is NOT debug
+            buildConfigField("Boolean", "IS_DEBUG", "false")
+
+            matchingFallbacks += listOf("debug")
+        }
+
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            versionNameSuffix = "-release"
+            // MUST be false
+            buildConfigField("Boolean", "IS_DEBUG", "false")
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -129,7 +149,6 @@ dependencies {
     implementation(libs.jakewharton.timber)
 
     /*Room database*/
-    annotationProcessor(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
@@ -168,4 +187,9 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+}
+
+ksp {
+    arg("room.internal.schemaInput", "$projectDir/schemas")
+    arg("room.internal.schemaOutput", "$projectDir/schemas")
 }

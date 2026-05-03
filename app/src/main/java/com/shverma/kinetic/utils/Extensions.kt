@@ -48,6 +48,13 @@ fun Double.formatPercentage(): String = String.format("%.0f%%", this)
 
 fun Float.formatPercentage(): String = this.toDouble().formatPercentage()
 
+/**
+ * Extracts the numeric value from a quantity string (e.g., "50g" -> 50.0)
+ */
+fun String.extractQuantity(): Double {
+    return this.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 100.0
+}
+
 // Progress calculation helpers
 fun calculateProgress(current: Double, target: Double): Float {
     return if (target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f

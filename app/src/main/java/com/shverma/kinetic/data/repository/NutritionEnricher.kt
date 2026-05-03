@@ -5,6 +5,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.shverma.kinetic.BuildConfig
 import com.shverma.kinetic.data.local.dao.FoodDao
 import com.shverma.kinetic.data.local.entity.FoodEntity
+import com.shverma.kinetic.data.local.entity.FoodSource
 import com.shverma.kinetic.data.model.Macros
 import com.shverma.kinetic.data.model.MealItem
 import com.shverma.kinetic.data.model.MealPlan
@@ -12,6 +13,7 @@ import com.shverma.kinetic.data.network.AIPrompts
 import com.shverma.kinetic.data.network.OpenAIMessage
 import com.shverma.kinetic.data.network.OpenAIRequest
 import com.shverma.kinetic.data.network.OpenAIService
+import com.shverma.kinetic.utils.extractQuantity
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -62,13 +64,13 @@ class NutritionEnricher @Inject constructor(
             return@coroutineScope mealPlan
         }
 
-    // 2. Check Room first (cached + USDA + AI results are all in Room)
+        // 2. Check Room first (cached + USDA + AI results are all in Room)
         val neededFromApi = mutableListOf<MealItem>()
         val cachedResults = mutableMapOf<String, MealItem>()
 
         itemsToEnrich.forEach { item ->
             val resolvedName = foodResolver.resolve(item.food)
-            val local = foodDao.searchFoods(resolvedName).firstOrNull()
+            val local = foodDao.findBestFood(resolvedName)
 
             if (local != null) {
                 cacheHitCount.incrementAndGet()
@@ -135,31 +137,38 @@ class NutritionEnricher @Inject constructor(
 
     private suspend fun resolveAndFetch(item: MealItem): MealItem {
         val resolvedName = foodResolver.resolve(item.food)
+        Log.d(TAG, "Resolving: ${item.food} -> $resolvedName")
 
-        // 1. Local DB (Room) - Note: Already checked in enrichMealPlanWithNutrition,
-        // but kept here for completeness if called directly.
-        val local = foodDao.searchFoods(resolvedName).firstOrNull()
-        if (local != null) {
+        // 1. Local DB (Room)
+        val local = foodDao.findBestFood(resolvedName)
+        if (local != null &&  local.unit==item.unit) {
+            Log.d(TAG, "Local DB HIT for $resolvedName")
+            val amount = item.quantity.extractQuantity()
+            val multiplier = amount / local.quantity.extractQuantity()
             return item.copy(
-                calories = local.calories,
-                proteinG = local.protein,
-                carbsG = local.carbs,
-                fatsG = local.fats
+                calories = local.calories * multiplier,
+                proteinG = local.protein * multiplier,
+                carbsG = local.carbs * multiplier,
+                fatsG = local.fats * multiplier
             )
         }
 
         // 2. Firestore fallback
         val remote = fetchFromFirestore(resolvedName)
-        if (remote != null) {
+        if (remote != null && remote.unit==item.unit) {
+            Log.d(TAG, "Firestore HIT for $resolvedName")
+            val amount = item.quantity.extractQuantity()
+            val multiplier = amount / remote.quantity.extractQuantity()
             return item.copy(
-                calories = remote.calories,
-                proteinG = remote.protein,
-                carbsG = remote.carbs,
-                fatsG = remote.fats
+                calories = remote.calories * multiplier,
+                proteinG = remote.protein * multiplier,
+                carbsG = remote.carbs * multiplier,
+                fatsG = remote.fats * multiplier
             )
         }
 
         // 3. AI fallback (LAST)
+        Log.d(TAG, "AI fallback for $resolvedName")
         return fetchSingleFromAI(item, resolvedName)
     }
 
@@ -178,7 +187,10 @@ class NutritionEnricher @Inject constructor(
                     protein = doc.getDouble("protein") ?: 0.0,
                     carbs = doc.getDouble("carbs") ?: 0.0,
                     fats = doc.getDouble("fats") ?: 0.0,
-                    source = "firestore"
+                    source = FoodSource.from(doc.getString("source"))
+                        ?: FoodSource.estimated,
+                    quantity = doc.getString("quantity") ?: "",
+                    unit = doc.getString("unit") ?: ""
                 )
                 foodDao.insert(entity)
                 entity
@@ -190,6 +202,7 @@ class NutritionEnricher @Inject constructor(
     }
 
     private suspend fun fetchSingleFromAI(item: MealItem, resolvedName: String): MealItem {
+        Log.d(TAG, "fetchSingleFromAI for: $resolvedName")
         return try {
             val request = OpenAIRequest(
                 model = "gpt-4o-mini",
@@ -208,6 +221,8 @@ class NutritionEnricher @Inject constructor(
             val content = response.choices.firstOrNull()?.message?.content
                 ?: throw Exception("Empty AI response")
 
+            Log.d(TAG, "AI raw response for $resolvedName: $content")
+
             val cleanedJson = content.trim()
                 .removePrefix("```json")
                 .removeSuffix("```")
@@ -215,6 +230,8 @@ class NutritionEnricher @Inject constructor(
 
             val list = json.decodeFromString<List<MealItem>>(cleanedJson)
             val aiResult = list.firstOrNull() ?: createFallbackItem(item)
+
+            Log.d(TAG, "AI result for $resolvedName: $aiResult")
 
             // Save AI result to Room
             foodDao.insert(
@@ -224,7 +241,9 @@ class NutritionEnricher @Inject constructor(
                     protein = aiResult.proteinG,
                     carbs = aiResult.carbsG,
                     fats = aiResult.fatsG,
-                    source = "ai"
+                    source = FoodSource.ai,
+                    quantity = item.quantity,
+                    unit = item.unit
                 )
             )
 
@@ -247,6 +266,9 @@ class NutritionEnricher @Inject constructor(
     }
 
     private fun logMetrics() {
-        Log.d(TAG, "Metrics -> API Calls: ${apiCallCount.get()}, Cache Hits: ${cacheHitCount.get()}, Failures: ${failureCount.get()}")
+        Log.d(
+            TAG,
+            "Metrics -> API Calls: ${apiCallCount.get()}, Cache Hits: ${cacheHitCount.get()}, Failures: ${failureCount.get()}"
+        )
     }
 }

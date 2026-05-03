@@ -6,6 +6,7 @@ import com.shverma.kinetic.data.local.entity.MealEntity
 import com.shverma.kinetic.data.model.MealItem
 import com.shverma.kinetic.data.model.toMealEntity
 import com.shverma.kinetic.data.repository.MealRepository
+import com.shverma.kinetic.utils.extractQuantity
 import com.shverma.kinetic.utils.formatMacroGramsOneDecimal
 import com.shverma.kinetic.utils.toIsoDateString
 import com.shverma.kinetic.utils.toTimeString
@@ -25,10 +26,13 @@ class LogMealsViewModel @Inject constructor(
     private val mealRepository: MealRepository
 ) : ViewModel() {
 
+    private val TAG = "LogMealsViewModel"
+
     private val _state = MutableStateFlow(LogMealsState(items = listOf(MealItemData("", ""))))
     val state: StateFlow<LogMealsState> = _state.asStateFlow()
 
     fun onEvent(event: LogMealsEvents) {
+        android.util.Log.d(TAG, "Event: $event")
         when (event) {
             is LogMealsEvents.UpdateItemAmount -> updateItemAmount(event.index, event.amount)
             is LogMealsEvents.UpdateItemName -> updateItemName(event.index, event.name)
@@ -78,9 +82,10 @@ class LogMealsViewModel @Inject constructor(
 
     private fun saveMeal() {
         val currentState = _state.value
+        android.util.Log.d(TAG, "Saving meal with ${currentState.items.size} items")
         val mealItems = currentState.items.filter { it.name.isNotBlank() }.map { item ->
             val macroInfo = macroMap[item.name.lowercase().trim()]
-            val amount = item.amount.replace("g", "").trim().toDoubleOrNull() ?: 0.0
+            val amount = item.amount.extractQuantity()
             val multiplier = amount / 100.0
 
             MealItem(
@@ -105,8 +110,14 @@ class LogMealsViewModel @Inject constructor(
 
         val mealEntity = meal.toMealEntity(now.toIsoDateString())
 
+        android.util.Log.d(TAG, "Inserting meal entity: $mealEntity")
         viewModelScope.launch {
-            mealRepository.insertMeal(mealEntity)
+            try {
+                mealRepository.insertMeal(mealEntity)
+                android.util.Log.d(TAG, "Meal saved successfully")
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error saving meal: ${e.message}", e)
+            }
         }
     }
 
@@ -118,7 +129,7 @@ class LogMealsViewModel @Inject constructor(
         var totalFats = 0.0
 
         currentItems.forEach { item ->
-            val amount = item.amount.replace("g", "").trim().toDoubleOrNull() ?: 0.0
+            val amount = item.amount.extractQuantity()
             val macroInfo = macroMap[item.name.lowercase().trim()]
             
             if (macroInfo != null) {

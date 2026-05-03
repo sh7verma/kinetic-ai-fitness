@@ -9,7 +9,6 @@ import com.shverma.kinetic.data.model.Meal
 import com.shverma.kinetic.data.model.MealPlan
 import com.shverma.kinetic.data.model.toMealEntity
 import kotlinx.coroutines.launch
-import com.shverma.kinetic.data.model.DietaryGoal
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import com.shverma.kinetic.utils.addDays
 import com.shverma.kinetic.utils.calculateProgress
@@ -39,6 +38,8 @@ class FuelViewModel @Inject constructor(
     private val dataStoreHelper: DataStoreHelper
 ) : ViewModel() {
 
+    private val TAG = "FuelViewModel"
+
     private val _state = MutableStateFlow(FuelState())
     val state: StateFlow<FuelState> = _state.asStateFlow()
 
@@ -49,17 +50,27 @@ class FuelViewModel @Inject constructor(
     }
 
     private fun fetchFirestoreMealPlanIfNeeded() {
+        android.util.Log.d(TAG, "fetchFirestoreMealPlanIfNeeded called")
         viewModelScope.launch {
             val currentPlan = dataStoreHelper.mealPlan.firstOrNull()
             if (currentPlan == null) {
+                android.util.Log.d(TAG, "No local meal plan, checking Firestore")
                 val user = userProfileRepository.getUserProfileData().firstOrNull()
                 if (user != null && user.uid.isNotBlank()) {
                     val today = Date().toIsoDateString()
+                    android.util.Log.d(TAG, "Fetching plan for user ${user.uid} on $today")
                     val firestorePlan = mealRepository.getMealPlanFromFirestore(user.uid, today)
                     if (firestorePlan != null) {
+                        android.util.Log.d(TAG, "Found meal plan in Firestore, saving locally")
                         dataStoreHelper.saveMealPlan(firestorePlan)
+                    } else {
+                        android.util.Log.d(TAG, "No meal plan found in Firestore")
                     }
+                } else {
+                    android.util.Log.d(TAG, "No user found or UID blank")
                 }
+            } else {
+                android.util.Log.d(TAG, "Local meal plan already exists")
             }
         }
     }
@@ -77,7 +88,10 @@ class FuelViewModel @Inject constructor(
             Log.d("FuelViewModel", "Meals: ${meals.size}, UserProfile: ${userProfile != null}, MealPlan: ${mealPlan != null}")
             
             val totalEaten = meals.sumOf { it.totalCalories }
-            val targetCalories = mealPlan?.totalCalories ?: userProfile?.calculateTargetCalories() ?: 2000.0
+            val targetCalories = mealPlan?.totalCalories
+                ?: userProfile?.targetCaloriesData?.targetCalories
+                ?: userProfile?.calculateTargetCalories()
+                ?: 2000.0
             val remaining = targetCalories - totalEaten
 
             val totalProtein = meals.sumOf { it.totalProtein }
@@ -93,23 +107,15 @@ class FuelViewModel @Inject constructor(
                 targetProtein = mealPlan.macros.proteinG
                 targetCarbs = mealPlan.macros.carbsG
                 targetFats = mealPlan.macros.fatsG
+            } else if (userProfile?.targetCaloriesData != null) {
+                targetProtein = userProfile.targetCaloriesData.proteinG
+                targetCarbs = userProfile.targetCaloriesData.carbsG
+                targetFats = userProfile.targetCaloriesData.fatsG
             } else {
-                // Default macro split based on goal
-                val goal = userProfile?.dietaryGoal ?: DietaryGoal.MUSCLE_GAIN
-                when (goal) {
-                    DietaryGoal.MUSCLE_GAIN -> {
-                        // 30% Protein, 45% Carbs, 25% Fats
-                        targetProtein = (targetCalories * 0.30) / 4
-                        targetCarbs = (targetCalories * 0.45) / 4
-                        targetFats = (targetCalories * 0.25) / 9
-                    }
-                    DietaryGoal.FAT_LOSS -> {
-                        // 40% Protein, 35% Carbs, 25% Fats
-                        targetProtein = (targetCalories * 0.40) / 4
-                        targetCarbs = (targetCalories * 0.35) / 4
-                        targetFats = (targetCalories * 0.25) / 9
-                    }
-                }
+                // Default macro split: 30% Protein, 45% Carbs, 25% Fats
+                targetProtein = (targetCalories * 0.30) / 4
+                targetCarbs = (targetCalories * 0.45) / 4
+                targetFats = (targetCalories * 0.25) / 9
             }
 
             // Calculate weekly trend
@@ -127,6 +133,7 @@ class FuelViewModel @Inject constructor(
 
             _state.update { currentState ->
                 currentState.copy(
+                    aiExplanation=userProfile?.targetCaloriesData?.explanation?:"",
                     caloriesValue = remaining.formatCalories(),
                     caloriesEaten = totalEaten.formatCalories(),
                     caloriesProgress = calculateProgress(totalEaten, targetCalories),
@@ -146,6 +153,7 @@ class FuelViewModel @Inject constructor(
     }
 
     fun onEvent(event: FuelEvents) {
+        android.util.Log.d(TAG, "Event: $event")
         when (event) {
             is FuelEvents.LoadData -> loadInitialData()
             is FuelEvents.AddMeal -> addMeal()
@@ -154,10 +162,16 @@ class FuelViewModel @Inject constructor(
     }
 
     private fun logPlannedMeal(meal: Meal) {
+        android.util.Log.d(TAG, "Logging planned meal: ${meal.name}")
         viewModelScope.launch {
-            val today = Date().toIsoDateString()
-            val now = Date().toTimeString()
-            mealRepository.insertMeal(meal.copy(time = now).toMealEntity(today))
+            try {
+                val today = Date().toIsoDateString()
+                val now = Date().toTimeString()
+                mealRepository.insertMeal(meal.copy(time = now).toMealEntity(today))
+                android.util.Log.d(TAG, "Planned meal logged successfully")
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error logging planned meal: ${e.message}", e)
+            }
         }
     }
 
@@ -178,6 +192,7 @@ sealed class FuelEvents {
 
 data class FuelState(
     val caloriesValue: String = "",
+    val aiExplanation : String = "",
     val caloriesProgress: Float = 0f,
     val caloriesEaten: String = "",
     val caloriesTarget: String = "",

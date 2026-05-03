@@ -1,57 +1,6 @@
 package com.shverma.kinetic.data.model
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
-
-@Serializable
-enum class DietaryGoal(
-    val label: String,
-    val description: String
-) {
-    MUSCLE_GAIN(
-        label = "MUSCLE GAIN",
-        description = "Caloric surplus with high-protein macro split to drive hypertrophic adaptation."
-    ),
-    FAT_LOSS(
-        label = "FAT LOSS",
-        description = "Precision deficit strategy preserving lean tissue while accelerating metabolic burn."
-    );
-
-    val icon: ImageVector
-        get() = when (this) {
-            MUSCLE_GAIN -> Icons.Default.Bolt
-            FAT_LOSS -> Icons.Default.LocalFireDepartment
-        }
-}
-
-data class DietChip(val key: String, val label: String)
-
-val dietChips = listOf(
-    DietChip("BALANCED", "BALANCED"),
-    DietChip("VEGAN", "VEGAN"),
-    DietChip("VEGETARIAN", "VEGETARIAN"),
-    DietChip("KETO", "KETO"),
-    DietChip("PALEO", "PALEO"),
-    DietChip("PESCATARIAN", "PESCATARIAN")
-)
-
-data class AllergyItem(val name: String, val isCommon: Boolean)
-
-val allergyDatabase = listOf(
-    AllergyItem("Peanuts", true),
-    AllergyItem("Shellfish", true),
-    AllergyItem("Dairy / Lactose", true),
-    AllergyItem("Gluten / Wheat", true),
-    AllergyItem("Tree Nuts", true),
-    AllergyItem("Eggs", false),
-    AllergyItem("Soy", false),
-    AllergyItem("Fish", false),
-    AllergyItem("Sesame", false),
-    AllergyItem("Sulphites", false)
-)
 
 @Serializable
 data class UserProfileData(
@@ -66,11 +15,12 @@ data class UserProfileData(
     val workoutGoal: String = "FAT LOSS",
     val commitmentDays: Double = 4.0,
     val equipment: String = "FULL GYM",
-    val dietaryGoal: DietaryGoal = DietaryGoal.MUSCLE_GAIN,
     val dietTypes: List<String> = listOf("BALANCED"),
     val allergies: List<String> = emptyList(),
     val activityLevel: String = "ACTIVE",
     val cuisines: List<String> = listOf("MEDITERRANEAN"),
+    val targetCaloriesData: TargetCaloriesData? = null,
+    val nutritionStrategy: NutritionStrategy? = null,
     val isCompleted: Boolean = false
 ) {
     fun calculateTargetCalories(): Double {
@@ -90,10 +40,10 @@ data class UserProfileData(
         }
 
         var tdee = bmr * activityMultiplier
-        tdee += when (dietaryGoal) {
-            DietaryGoal.MUSCLE_GAIN -> 300.0
-            DietaryGoal.FAT_LOSS -> -500.0
-        }
-        return tdee
+        return tdee.round()
     }
+}
+
+fun Double.round(): Double {
+    return kotlin.math.round(this * 10) / 10.0
 }

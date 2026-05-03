@@ -18,6 +18,8 @@ sealed class AIResponse {
     data class SingleLogResult(val data: SingleLogResponse) : AIResponse()
 
     data class MultiLogResult(val data: MultiLogResponse) : AIResponse()
+    data class TargetCaloriesResult(val data: TargetCaloriesData) : AIResponse()
+    data class NutritionStrategyResult(val data: NutritionStrategy) : AIResponse()
 
     data class TextAnswer(val message: String) : AIResponse()
 
@@ -66,6 +68,18 @@ sealed class AIResponse {
                         val parsed = json.decodeFromString<MultiLogResponse>(cleaned)
                         Log.d(TAG, "Parsed MultiLog")
                         MultiLogResult(parsed)
+                    }
+
+                    "target_calories" -> {
+                        val parsed = json.decodeFromString<TargetCaloriesResponse>(cleaned)
+                        Log.d(TAG, "Parsed TargetCalories")
+                        TargetCaloriesResult(parsed.data)
+                    }
+
+                    "nutrition_strategy" -> {
+                        val parsed = json.decodeFromString<NutritionStrategy>(cleaned)
+                        Log.d(TAG, "Parsed NutritionStrategy: $parsed")
+                        NutritionStrategyResult(parsed)
                     }
 
                     null -> {

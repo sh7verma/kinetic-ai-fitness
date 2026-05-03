@@ -2,9 +2,14 @@ package com.shverma.kinetic.data.network
 
 import android.util.Log
 import com.shverma.kinetic.BuildConfig
+import com.shverma.kinetic.data.model.AIResponse
+import com.shverma.kinetic.data.model.NutritionStrategy
+import com.shverma.kinetic.data.model.TargetCaloriesData
 import com.shverma.kinetic.data.model.UserProfileData
+import com.shverma.kinetic.data.repository.MacrosCalculator
 import com.shverma.kinetic.utils.toTimeString
 import java.util.Date
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -81,6 +86,52 @@ class OpenAIClient @Inject constructor(
             null to null
         }
     }
+
+    suspend fun getInitialTargetCalories(user: UserProfileData): Pair<TargetCaloriesData, NutritionStrategy>? {
+        val strategy = getStrategy(user)
+        return if (strategy != null) {
+            val targetCalories = MacrosCalculator.calculate(user, strategy)
+            if (targetCalories != null) {
+                targetCalories to strategy
+            } else {
+                null
+            }
+        } else {
+            Log.w(TAG, "AI failed to provide a strategy, using fallback")
+            val fallbackStrategy = NutritionStrategy(
+                goal = user.workoutGoal,
+                proteinPerKg = 2.0,
+                fatRatio = 0.25,
+                calorieAdjustment = 0.0,
+                reasoning = "Fallback default strategy"
+            )
+            MacrosCalculator.fallback(user) to fallbackStrategy
+        }
+    }
+
+
+    suspend fun getStrategy(user: UserProfileData): NutritionStrategy? {
+        val systemPrompt = AIPrompts.initStrategyPrompt()
+        val userContext = "User Profile: Age=${user.age.roundToInt()}, Weight=${user.weight.roundToInt()}${user.weightUnit}, Height=${user.height.roundToInt()}${user.heightUnit}, Sex=${user.sex}, Goal=${user.workoutGoal}, Activity=${user.activityLevel}"
+
+        val request = OpenAIRequest(
+            model = "gpt-4o-mini",
+            messages = listOf(
+                OpenAIMessage("system", systemPrompt),
+                OpenAIMessage("user", userContext)
+            )
+        )
+
+        return try {
+            val response = openAIService.getChatCompletions("Bearer ${BuildConfig.OPENAI_API_KEY}", request)
+            val content = response.choices.firstOrNull()?.message?.content ?: return null
+            val aiResponse = AIResponse.parse(content)
+            if (aiResponse is AIResponse.NutritionStrategyResult) aiResponse.data else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching nutrition strategy: ${e.message}", e)
+            null
+        }
+    }
 }
 
 fun buildUserContext(
@@ -95,7 +146,7 @@ fun buildUserContext(
 
     return buildString {
         append("User:\n")
-        append("weight=${user.weight}, goal=${user.workoutGoal}\n")
+        append("weight=${user.weight.roundToInt()}, goal=${user.workoutGoal}\n")
 
         when (chatType) {
 

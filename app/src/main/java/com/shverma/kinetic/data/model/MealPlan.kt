@@ -7,48 +7,48 @@ import kotlinx.serialization.Serializable
 data class MealPlanResponse(
     val type: String = "meal_plan",
     @SerialName("meal_plan")
-    val mealPlan: MealPlan
+    val mealPlan: MealPlan = MealPlan()
 )
 
 @Serializable
 data class SingleLogResponse(
     val type: String = "single_log",
-    val entry: LogEntryDetails
+    val entry: LogEntryDetails = LogEntryDetails()
 )
 
 @Serializable
 data class LogEntryDetails(
-    val food: String,
-    val quantity: String,
+    val food: String = "",
+    val quantity: String = "",
     @SerialName("meal_time")
-    val mealTime: String,
-    val calories: Double,
+    val mealTime: String = "",
+    val calories: Double = 0.0,
     @SerialName("protein_g")
-    val proteinG: Double,
+    val proteinG: Double = 0.0,
     @SerialName("carbs_g")
-    val carbsG: Double,
+    val carbsG: Double = 0.0,
     @SerialName("fats_g")
-    val fatsG: Double,
-    val confidence: Double,
-    val note: String
+    val fatsG: Double = 0.0,
+    val confidence: Double = 0.0,
+    val note: String = ""
 )
 
 @Serializable
 data class MultiLogResponse(
     val type: String = "multi_log",
     @SerialName("parsed_from")
-    val parsedFrom: String,
-    val entries: List<LogEntry>,
+    val parsedFrom: String = "",
+    val entries: List<LogEntry> = emptyList(),
     @SerialName("total_calories")
-    val totalCalories: Double,
-    val confidence: Double
+    val totalCalories: Double = 0.0,
+    val confidence: Double = 0.0
 )
 
 @Serializable
 data class LogEntry(
     @SerialName("meal_time")
-    val mealTime: String,
-    val items: List<MealItem>
+    val mealTime: String = "",
+    val items: List<MealItem> = emptyList()
 ) {
     val totalCalories: Double get() = items.sumOf { it.calories }
     val totalProtein: Double get() = items.sumOf { it.proteinG }
@@ -100,6 +100,7 @@ fun Meal.toMealEntity(date: String): com.shverma.kinetic.data.local.entity.MealE
 data class MealItem(
     val food: String = "",
     val quantity: String = "",
+    val unit: String = "",
     val calories: Double = 0.0,
     @SerialName("protein_g")
     val proteinG: Double = 0.0,
@@ -107,4 +108,40 @@ data class MealItem(
     val carbsG: Double = 0.0,
     @SerialName("fats_g")
     val fatsG: Double = 0.0
+)
+
+@Serializable
+data class TargetCaloriesResponse(
+    val type: String = "target_calories",
+    val data: TargetCaloriesData = TargetCaloriesData()
+)
+
+@Serializable
+data class TargetCaloriesData(
+    @SerialName("target_calories")
+    val targetCalories: Double = 0.0,
+    @SerialName("protein_g")
+    val proteinG: Double = 0.0,
+    @SerialName("carbs_g")
+    val carbsG: Double = 0.0,
+    @SerialName("fats_g")
+    val fatsG: Double = 0.0,
+    val explanation: String = ""
+)
+
+
+@Serializable
+data class NutritionStrategy(
+    val goal: String = "",
+
+    @SerialName("protein_per_kg")
+    val proteinPerKg: Double = 0.0,
+
+    @SerialName("fat_ratio")
+    val fatRatio: Double = 0.0,
+
+    @SerialName("calorie_adjustment")
+    val calorieAdjustment: Double = 0.0,
+
+    val reasoning: String = ""
 )

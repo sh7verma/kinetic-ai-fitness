@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.local.entity.MealEntity
 import com.shverma.kinetic.data.model.MealPlan
 import com.shverma.kinetic.data.model.UserProfileData
-import com.shverma.kinetic.data.model.DietaryGoal
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import com.shverma.kinetic.data.repository.MealRepository
 import com.shverma.kinetic.data.repository.UserProfileRepository
@@ -94,19 +93,10 @@ class TodayMealPlanViewModel @Inject constructor(
                 targetCarbs = plan.macros.carbsG
                 targetFats = plan.macros.fatsG
             } else {
-                val goal = userProfile?.dietaryGoal ?: DietaryGoal.MUSCLE_GAIN
-                when (goal) {
-                    DietaryGoal.MUSCLE_GAIN -> {
-                        targetProtein = (target * 0.30) / 4
-                        targetCarbs = (target * 0.45) / 4
-                        targetFats = (target * 0.25) / 9
-                    }
-                    DietaryGoal.FAT_LOSS -> {
-                        targetProtein = (target * 0.40) / 4
-                        targetCarbs = (target * 0.35) / 4
-                        targetFats = (target * 0.25) / 9
-                    }
-                }
+                // Default macro split: 30% Protein, 45% Carbs, 25% Fats
+                targetProtein = (target * 0.30) / 4
+                targetCarbs = (target * 0.45) / 4
+                targetFats = (target * 0.25) / 9
             }
             
             TodayMealPlanState(

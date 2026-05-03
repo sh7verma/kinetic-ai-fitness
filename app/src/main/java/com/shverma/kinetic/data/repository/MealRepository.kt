@@ -31,20 +31,27 @@ class MealRepositoryImpl @Inject constructor(
     override fun getMealsFromDate(startDate: String): Flow<List<MealEntity>> = mealDao.getMealsFromDate(startDate)
 
     override suspend fun insertMeal(meal: MealEntity) {
+        android.util.Log.d("MealRepository", "Inserting meal: $meal")
         mealDao.insertMeal(meal)
     }
 
     override suspend fun deleteMeal(meal: MealEntity) {
+        android.util.Log.d("MealRepository", "Deleting meal: $meal")
         mealDao.deleteMeal(meal)
     }
 
     override suspend fun deleteMealById(id: Long) {
+        android.util.Log.d("MealRepository", "Deleting meal by ID: $id")
         mealDao.deleteMealById(id)
     }
 
     override suspend fun saveMealPlanToFirestore(uid: String, mealPlan: MealPlan) {
-        if (uid.isBlank()) return
+        if (uid.isBlank()) {
+            android.util.Log.w("MealRepository", "Cannot save meal plan: UID is blank")
+            return
+        }
         try {
+            android.util.Log.d("MealRepository", "Saving meal plan to Firestore for user: $uid, date: ${mealPlan.date}")
             firestore.collection("users")
                 .document(uid)
                 .collection("meal_plans")
@@ -62,8 +69,12 @@ class MealRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMealPlanFromFirestore(uid: String, date: String): MealPlan? {
-        if (uid.isBlank()) return null
+        if (uid.isBlank()) {
+            android.util.Log.w("MealRepository", "Cannot fetch meal plan: UID is blank")
+            return null
+        }
         return try {
+            android.util.Log.d("MealRepository", "Fetching meal plan from Firestore for user: $uid, date: $date")
             val snapshot = firestore.collection("users")
                 .document(uid)
                 .collection("meal_plans")

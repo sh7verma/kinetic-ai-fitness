@@ -146,7 +146,7 @@ fun OnboardingTopBar(
     currentStep: Int,
     totalSteps: Int,
     onBack: () -> Unit,
-    onSkip: () -> Unit,
+    onSkip: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -189,7 +189,7 @@ fun OnboardingTopBar(
             // Skip button at end
             if (currentStep < totalSteps) {
                 TextButton(
-                    onClick = onSkip,
+                    onClick = { onSkip?.invoke() },
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     Text(
@@ -213,6 +213,7 @@ fun OnboardingBottomNavigation(
     onBack: (() -> Unit)? = null,
     backText: String = "BACK",
     continueText: String = "CONTINUE",
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val typography = LocalKineticTypography.current
@@ -227,6 +228,7 @@ fun OnboardingBottomNavigation(
         if (onBack != null) {
             OutlinedButton(
                 onClick = onBack,
+                enabled = enabled,
                 modifier = Modifier
                     .weight(0.4f)
                     .height(56.dp),
@@ -251,6 +253,7 @@ fun OnboardingBottomNavigation(
         // Continue Button
         Button(
             onClick = onContinue,
+            enabled = enabled,
             modifier = Modifier
                 .weight(if (onBack != null) 0.6f else 1f)
                 .height(56.dp),

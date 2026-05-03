@@ -8,4 +8,5 @@ interface GoogleAuthRepository {
     suspend fun signInWithTestUser(): GoogleSignInResult
     fun getCurrentUser(): FirebaseUser?
     fun signOut()
+    suspend fun deleteAccount()
 }

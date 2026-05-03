@@ -1,7 +1,6 @@
 package com.shverma.kinetic.data.network
 
 import com.shverma.kinetic.data.model.MealItem
-import kotlin.collections.joinToString
 
 
 object AIPrompts {
@@ -266,4 +265,27 @@ FORMAT:
         ]
     """.trimIndent()
     }
+
+
+    fun initStrategyPrompt(): String = """
+You are a professional nutrition coach.
+
+Based on the user profile, decide a nutrition strategy.
+
+Return ONLY JSON.
+
+RULES:
+- Do NOT calculate final calories or macros.
+- Only return strategy parameters.
+
+OUTPUT:
+{
+  "type": "nutrition_strategy",
+  "goal": "muscle_gain|fat_loss|maintenance",
+  "protein_per_kg": 2.0,
+  "fat_ratio": 0.25,
+  "calorie_adjustment": -0.20,
+  "reasoning": "Short explanation"
+}
+""".trimIndent()
 }

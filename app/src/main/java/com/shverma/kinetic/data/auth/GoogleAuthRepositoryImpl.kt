@@ -55,7 +55,7 @@ class GoogleAuthRepositoryImpl @Inject constructor(
                 val idToken = googleIdTokenCredential.idToken
 
                 if (idToken.isNullOrEmpty()) {
-                    if (BuildConfig.DEBUG) return signInWithTestUser()
+                    if (BuildConfig.IS_DEBUG) return signInWithTestUser()
                     return GoogleSignInResult.Error("ID Token is null or empty")
                 }
 
@@ -72,13 +72,13 @@ class GoogleAuthRepositoryImpl @Inject constructor(
                     GoogleSignInResult.Success(user)
                 } else {
                     Log.e(TAG, "Firebase user is null")
-                    if (BuildConfig.DEBUG) return signInWithTestUser()
+                    if (BuildConfig.IS_DEBUG) return signInWithTestUser()
                     GoogleSignInResult.Error("Authentication failed (user null)")
                 }
 
             } else {
                 Log.e(TAG, "Invalid credential type: ${credential::class.java.simpleName}")
-                if (BuildConfig.DEBUG) return signInWithTestUser()
+                if (BuildConfig.IS_DEBUG) return signInWithTestUser()
                 GoogleSignInResult.Error(
                     "Unexpected credential type: ${credential::class.java.simpleName}"
                 )
@@ -91,7 +91,7 @@ class GoogleAuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Sign-in error", e)
 
-            if (BuildConfig.DEBUG) {
+            if (BuildConfig.IS_DEBUG) {
                 Log.d(TAG, "Debug mode: Falling back to test user login")
                 return signInWithTestUser()
             }
@@ -132,5 +132,9 @@ class GoogleAuthRepositoryImpl @Inject constructor(
 
     override fun signOut() {
         firebaseAuth.signOut()
+    }
+
+    override suspend fun deleteAccount() {
+        firebaseAuth.currentUser?.delete()?.await()
     }
 }

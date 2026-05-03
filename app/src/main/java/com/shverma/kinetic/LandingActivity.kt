@@ -51,6 +51,7 @@ import com.shverma.kinetic.ui.aichat.AIChatScreen
 import com.shverma.kinetic.ui.fuel.LogMealsScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
+import com.shverma.kinetic.BuildConfig
 
 @AndroidEntryPoint
 class LandingActivity : ComponentActivity() {
@@ -108,9 +109,11 @@ fun LandingScreen() {
         },
         containerColor = Color(0xFF0E0E0E) // Pure Obsidian Black
     ) { padding ->
+        val startDestination = if (BuildConfig.IS_DEBUG) LandingRoutes.Plan else LandingRoutes.Fuel
+
         NavHost(
             navController = navController,
-            startDestination = LandingRoutes.Plan,
+            startDestination = startDestination,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp) // Avoid extra padding if screens have their own Scaffold
@@ -191,13 +194,20 @@ fun KineticBottomNavigation(
     currentDestination: NavDestination?,
     onTabSelected: (Any) -> Unit
 ) {
-    val tabs = listOf(
-        NavigationItem("Plan", Icons.Outlined.EventNote, LandingRoutes.Plan),
-        NavigationItem("Fuel", Icons.Outlined.LocalFireDepartment, LandingRoutes.Fuel),
-        NavigationItem("Stats", Icons.Outlined.BarChart, LandingRoutes.Stats),
-        NavigationItem("Coach", Icons.Outlined.Sports, LandingRoutes.Coach),
-        NavigationItem("Profile", Icons.Outlined.Person, LandingRoutes.Profile)
-    )
+    val tabs = remember {
+        val allTabs = listOf(
+            NavigationItem("Plan", Icons.Outlined.EventNote, LandingRoutes.Plan),
+            NavigationItem("Fuel", Icons.Outlined.LocalFireDepartment, LandingRoutes.Fuel),
+            NavigationItem("Stats", Icons.Outlined.BarChart, LandingRoutes.Stats),
+            NavigationItem("Coach", Icons.Outlined.Sports, LandingRoutes.Coach),
+            NavigationItem("Profile", Icons.Outlined.Person, LandingRoutes.Profile)
+        )
+        if (BuildConfig.IS_DEBUG) {
+            allTabs
+        } else {
+            allTabs.filter { it.route == LandingRoutes.Fuel || it.route == LandingRoutes.Profile }
+        }
+    }
 
     Box(
         modifier = Modifier

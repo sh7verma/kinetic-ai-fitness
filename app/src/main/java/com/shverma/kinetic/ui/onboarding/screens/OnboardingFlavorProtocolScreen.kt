@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.shverma.kinetic.ui.components.DotLoader
 import com.shverma.kinetic.ui.theme.BarlowCondensedFamily
 import com.shverma.kinetic.ui.theme.LocalKineticTypography
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
@@ -124,13 +125,32 @@ fun OnboardingFlavorProtocolStep(
         // Bottom Navigation Buttons
         OnboardingBottomNavigation(
             onContinue = {
-                viewModel.saveUserProfileData()
-                onContinue()
+                viewModel.saveUserProfileData(onComplete = onContinue)
             },
             continueText = "FINISH",
             onBack = { viewModel.previousStep() },
+            enabled = !uiState.isLoading,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .clickable(enabled = false) { },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    DotLoader(dotColor = Color(0xFFC8F135))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Calculating your optimal plan...",
+                        style = typography.bodyMd.copy(color = Color.White)
+                    )
+                }
+            }
+        }
     }
 }
 

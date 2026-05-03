@@ -1,39 +1,59 @@
 package com.shverma.kinetic.ui.onboarding.screens
 
-import com.shverma.kinetic.data.model.AllergyItem
-import com.shverma.kinetic.data.model.DietaryGoal
-import com.shverma.kinetic.data.model.allergyDatabase
-import com.shverma.kinetic.data.model.dietChips
-import com.shverma.kinetic.ui.onboarding.OnboardingStep
-import com.shverma.kinetic.ui.onboarding.OnboardingViewModel
-import com.shverma.kinetic.ui.onboarding.components.OnboardingBottomNavigation
-import com.shverma.kinetic.ui.onboarding.components.OnboardingStepHeader
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shverma.kinetic.ui.theme.*
+import com.shverma.kinetic.data.model.AllergyItem
+import com.shverma.kinetic.data.model.allergyDatabase
+import com.shverma.kinetic.ui.onboarding.OnboardingStep
+import com.shverma.kinetic.ui.onboarding.OnboardingViewModel
+import com.shverma.kinetic.ui.onboarding.components.OnboardingBottomNavigation
+import com.shverma.kinetic.ui.onboarding.components.OnboardingStepHeader
+import com.shverma.kinetic.ui.theme.LocalKineticTypography
+import com.shverma.kinetic.ui.theme.MealCard
+import com.shverma.kinetic.ui.theme.MealDanger
+import com.shverma.kinetic.ui.theme.MealGray
+import com.shverma.kinetic.ui.theme.MealVolt
+import com.shverma.kinetic.ui.theme.MealWhite
+import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 
 // ─── Root Screen ──────────────────────────────────────────────────────────────
 
@@ -75,17 +95,6 @@ fun OnboardingMealSetupStep(
                     .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // ── Dietary Goal ──────────────────────────────────────────────────
-                DietaryGoalSection(
-                    selectedGoal = uiState.selectedGoal,
-                    onGoalSelected = { viewModel.updateDietaryGoal(it) }
-                )
-
-                // ── Diet Type & Restrictions ──────────────────────────────────────
-                DietTypeSection(
-                    selectedDietTypes = uiState.selectedDietTypes,
-                    onToggleDietType = { viewModel.toggleDietType(it) }
-                )
 
                 // ── Critical Sensitivities ────────────────────────────────────────
                 CriticalSensitivitiesSection(
@@ -109,162 +118,7 @@ fun OnboardingMealSetupStep(
     }
 }
 
-@Composable
-fun DietaryGoalSection(
-    selectedGoal: DietaryGoal,
-    onGoalSelected: (DietaryGoal) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        MealSectionHeader(title = "DIETARY GOAL", accentColor = MealCyan)
-        Spacer(modifier = Modifier.height(16.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DietaryGoal.entries.forEach { goal ->
-                GoalCard(
-                    goal = goal,
-                    isSelected = selectedGoal == goal,
-                    onClick = { onGoalSelected(goal) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun GoalCard(goal: DietaryGoal, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MealCard)
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) MealVolt else MealWhite.copy(alpha = 0.06f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable { onClick() }
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isSelected) MealVolt.copy(alpha = 0.15f)
-                        else MealWhite.copy(alpha = 0.04f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = goal.icon,
-                    contentDescription = null,
-                    tint = if (isSelected) MealVolt else MealGray,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = goal.label,
-                    style = LocalKineticTypography.current.titleMd.copy(
-                        fontFamily = LexendFamily,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) MealVolt else MealWhite,
-                        fontSize = 16.sp
-                    )
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = goal.description,
-                    style = LocalKineticTypography.current.bodySm.copy(
-                        fontFamily = SpaceGroteskFamily,
-                        color = if (isSelected) MealWhite.copy(alpha = 0.75f) else MealGray,
-                        lineHeight = 18.sp
-                    )
-                )
-            }
-
-            if (isSelected) {
-                Spacer(modifier = Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(MealVolt),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.Black,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ─── 5. Diet Type & Restrictions ─────────────────────────────────────────────
-
 @OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun DietTypeSection(
-    selectedDietTypes: List<String>,
-    onToggleDietType: (String) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        MealSectionHeader(title = "DIET TYPE & RESTRICTIONS", accentColor = MealVolt)
-        Spacer(modifier = Modifier.height(16.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            dietChips.forEach { chip ->
-                DietChipItem(
-                    label = chip.label,
-                    isSelected = selectedDietTypes.contains(chip.key),
-                    onClick = { onToggleDietType(chip.key) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DietChipItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(if (isSelected) MealVolt else MealCard)
-            .border(
-                width = 1.dp,
-                color = if (isSelected) MealVolt else MealWhite.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(100.dp)
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 9.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = LocalKineticTypography.current.labelMd.copy(
-                fontFamily = SpaceGroteskFamily,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.Black else MealWhite,
-                letterSpacing = 0.8.sp
-            )
-        )
-    }
-}
-
-// ─── 6. Critical Sensitivities ────────────────────────────────────────────────
-
 @Composable
 fun CriticalSensitivitiesSection(
     searchQuery: String,
@@ -275,6 +129,23 @@ fun CriticalSensitivitiesSection(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         MealSectionHeader(title = "CRITICAL SENSITIVITIES", accentColor = MealDanger)
+
+        if (selectedAllergies.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                selectedAllergies.forEach { allergy ->
+                    SelectedAllergyChip(
+                        name = allergy,
+                        onRemove = { onToggleAllergy(allergy) }
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         AllergySearchBar(
@@ -416,7 +287,7 @@ fun AllergyRow(
             )
 
             // Tag
-            val tagText = if (isActive) "ACTIVE" else if (item.isCommon) "COMMON" else null
+            val tagText = if (item.isCommon) "COMMON" else null
             if (tagText != null) {
                 Box(
                     modifier = Modifier
@@ -447,6 +318,35 @@ fun AllergyRow(
                 color = MealWhite.copy(alpha = 0.06f)
             )
         }
+    }
+}
+
+@Composable
+fun SelectedAllergyChip(name: String, onRemove: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(MealDanger.copy(alpha = 0.15f))
+            .border(1.dp, MealDanger.copy(alpha = 0.3f), RoundedCornerShape(100.dp))
+            .clickable { onRemove() }
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = name,
+            style = LocalKineticTypography.current.labelMd.copy(
+                fontFamily = SpaceGroteskFamily,
+                fontWeight = FontWeight.SemiBold,
+                color = MealWhite
+            )
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Remove",
+            tint = MealWhite.copy(alpha = 0.6f),
+            modifier = Modifier.size(14.dp)
+        )
     }
 }
 

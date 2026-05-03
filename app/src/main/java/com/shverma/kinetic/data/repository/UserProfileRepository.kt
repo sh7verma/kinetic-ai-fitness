@@ -1,5 +1,6 @@
 package com.shverma.kinetic.data.repository
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shverma.kinetic.data.model.UserProfileData
@@ -15,6 +16,7 @@ interface UserProfileRepository {
     suspend fun clearUserProfileData()
     suspend fun saveUserProfileToFirestore(user: UserProfileData)
     suspend fun fetchUserProfileFromFirestore(uid: String): UserProfileData?
+    suspend fun deleteUserFromFirestore(uid: String)
 }
 
 @Singleton
@@ -54,9 +56,20 @@ class UserProfileRepositoryImpl @Inject constructor(
                 .document(uid)
                 .get()
                 .await()
-            snapshot.toObject(UserProfileData::class.java)
+            val data = snapshot.toObject(UserProfileData::class.java)
+            Log.d("UserProfileRepository", "Fetched UserProfileData from Firestore: $data")
+            data
         } catch (e: Exception) {
+            Log.e("UserProfileRepository", "Error fetching UserProfileData from Firestore: ${e.message}", e)
             null
         }
+    }
+
+    override suspend fun deleteUserFromFirestore(uid: String) {
+        if (uid.isBlank()) return
+        firestore.collection(USERS_COLLECTION)
+            .document(uid)
+            .delete()
+            .await()
     }
 }

@@ -16,4 +16,18 @@ interface FoodDao {
 
     @Query("SELECT * FROM foods WHERE name LIKE '%' || :query || '%' LIMIT 10")
     suspend fun searchFoods(query: String): List<FoodEntity>
+
+    @Query("""
+SELECT * FROM foods 
+WHERE name LIKE '%' || :query || '%'
+ORDER BY 
+    CASE source
+        WHEN 'USER' THEN 4
+        WHEN 'USDA' THEN 3
+        WHEN 'FIRESTORE' THEN 2
+        WHEN 'AI' THEN 1
+    END DESC
+LIMIT 1
+""")
+    suspend fun findBestFood(query: String): FoodEntity?
 }

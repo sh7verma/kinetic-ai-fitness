@@ -3,8 +3,10 @@ package com.shverma.kinetic.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.auth.GoogleAuthRepository
-import com.shverma.kinetic.data.model.DietaryGoal
+import com.shverma.kinetic.data.model.NutritionStrategy
+import com.shverma.kinetic.data.model.TargetCaloriesData
 import com.shverma.kinetic.data.model.UserProfileData
+import com.shverma.kinetic.data.network.OpenAIClient
 import com.shverma.kinetic.data.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,19 +31,23 @@ data class OnboardingUiState(
     val commitmentDays: Double = 4.0,
     val equipment: String = "FULL GYM",
     // Meal Setup Data
-    val selectedGoal: DietaryGoal = DietaryGoal.MUSCLE_GAIN,
     val selectedDietTypes: List<String> = listOf("BALANCED"),
     val selectedAllergies: List<String> = emptyList(),
     // Activity Level Data
     val selectedActivityLevel: String = "ACTIVE",
     // Cuisine Preference Data
-    val selectedCuisines: List<String> = listOf("MEDITERRANEAN")
+    val selectedCuisines: List<String> = listOf("MEDITERRANEAN"),
+    // AI calculated targets
+    val targetCaloriesData: TargetCaloriesData? = null,
+    val nutritionStrategy: NutritionStrategy? = null,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
-    private val authRepository: GoogleAuthRepository
+    private val authRepository: GoogleAuthRepository,
+    private val openAIClient: OpenAIClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -68,11 +74,12 @@ class OnboardingViewModel @Inject constructor(
                             workoutGoal = savedData.workoutGoal,
                             commitmentDays = savedData.commitmentDays,
                             equipment = savedData.equipment,
-                            selectedGoal = savedData.dietaryGoal,
                             selectedDietTypes = savedData.dietTypes,
                             selectedAllergies = savedData.allergies,
                             selectedActivityLevel = savedData.activityLevel,
                             selectedCuisines = savedData.cuisines,
+                            targetCaloriesData = savedData.targetCaloriesData,
+                            nutritionStrategy = savedData.nutritionStrategy,
                             currentStep = if (savedData.isCompleted) OnboardingStep.entries.last() else state.currentStep
                         )
                     }
@@ -82,31 +89,60 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun saveUserProfileData() {
+    fun saveUserProfileData(onComplete: (() -> Unit)? = null) {
         if (!isDataLoaded) return
+        _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            val state = _uiState.value
-            val currentUser = authRepository.getCurrentUser()
-            val data = UserProfileData(
-                uid = currentUser?.uid ?: "",
-                age = state.age,
-                weight = state.weight,
-                weightUnit = state.weightUnit,
-                height = state.height,
-                heightUnit = state.heightUnit,
-                sex = state.sex,
-                workoutGoal = state.workoutGoal,
-                commitmentDays = state.commitmentDays,
-                equipment = state.equipment,
-                dietaryGoal = state.selectedGoal,
-                dietTypes = state.selectedDietTypes,
-                allergies = state.selectedAllergies,
-                activityLevel = state.selectedActivityLevel,
-                cuisines = state.selectedCuisines,
-                isCompleted = state.currentStep == OnboardingStep.entries.last()
-            )
-            userProfileRepository.saveUserProfileData(data)
-            userProfileRepository.saveUserProfileToFirestore(data)
+            try {
+                val state = _uiState.value
+                val currentUser = authRepository.getCurrentUser()
+                val initialData = UserProfileData(
+                    uid = currentUser?.uid ?: "",
+                    age = state.age,
+                    weight = state.weight,
+                    weightUnit = state.weightUnit,
+                    height = state.height,
+                    heightUnit = state.heightUnit,
+                    sex = state.sex,
+                    workoutGoal = state.workoutGoal,
+                    commitmentDays = state.commitmentDays,
+                    equipment = state.equipment,
+                    dietTypes = state.selectedDietTypes,
+                    allergies = state.selectedAllergies,
+                    activityLevel = state.selectedActivityLevel,
+                    cuisines = state.selectedCuisines,
+                    targetCaloriesData = state.targetCaloriesData,
+                    nutritionStrategy = state.nutritionStrategy,
+                    isCompleted = state.currentStep == OnboardingStep.entries.last()
+                )
+
+                val finalUser = if (initialData.isCompleted && initialData.targetCaloriesData == null) {
+                    val result = openAIClient.getInitialTargetCalories(initialData)
+                    if (result != null) {
+                        val (aiTargets, strategy) = result
+                        val updatedData = initialData.copy(
+                            targetCaloriesData = aiTargets,
+                            nutritionStrategy = strategy
+                        )
+                        // Update UI state with AI targets
+                        _uiState.update { it.copy(
+                            targetCaloriesData = updatedData.targetCaloriesData,
+                            nutritionStrategy = updatedData.nutritionStrategy
+                        ) }
+                        updatedData
+                    } else {
+                        initialData
+                    }
+                } else {
+                    initialData
+                }
+
+                userProfileRepository.saveUserProfileData(finalUser)
+                userProfileRepository.saveUserProfileToFirestore(finalUser)
+                onComplete?.invoke()
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
     }
 
@@ -127,10 +163,10 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun skipOnboarding() {
+    fun skipOnboarding(onComplete: (() -> Unit)? = null) {
         // Handle skip logic - might navigate to landing activity
         _uiState.update { it.copy(currentStep = OnboardingStep.entries.last()) }
-        saveUserProfileData()
+        saveUserProfileData(onComplete = onComplete)
     }
 
     // Biometrics Actions
@@ -164,10 +200,6 @@ class OnboardingViewModel @Inject constructor(
     }
 
     // Meal Setup Actions
-    fun updateDietaryGoal(goal: DietaryGoal) {
-        _uiState.update { it.copy(selectedGoal = goal) }
-    }
-
     fun toggleDietType(key: String) {
         _uiState.update { state ->
             val currentTypes = state.selectedDietTypes

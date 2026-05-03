@@ -30,8 +30,8 @@ fun OnboardingScreen(
                 OnboardingTopBar(
                     currentStep = uiState.currentStep.stepNumber,
                     totalSteps = uiState.totalSteps,
-                    onBack = { viewModel.previousStep() },
-                    onSkip = { viewModel.skipOnboarding() }
+                    onBack = { if (!uiState.isLoading) viewModel.previousStep() },
+                    onSkip = { if (!uiState.isLoading) viewModel.skipOnboarding(onFinish) }
                 )
                 OnboardingStepProgressBar(
                     currentStep = uiState.currentStep.stepNumber,

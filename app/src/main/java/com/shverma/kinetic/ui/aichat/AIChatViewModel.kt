@@ -149,6 +149,8 @@ class AIChatViewModel @Inject constructor(
                     )
 
                     is AIResponse.Error -> ChatMessage(response.message, false)
+                    is AIResponse.TargetCaloriesResult -> ChatMessage(response.data.explanation, false)
+                    else -> {ChatMessage("Sorry, I couldn't understand the response. Please try again.", false)}
                 }
                 _state.update {
                     it.copy(
