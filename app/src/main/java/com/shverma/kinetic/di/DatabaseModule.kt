@@ -3,9 +3,10 @@ package com.shverma.kinetic.di
 import android.content.Context
 import androidx.room.Room
 import com.shverma.kinetic.data.local.AppDatabase
+import com.shverma.kinetic.data.local.dao.DietPlanDao
 import com.shverma.kinetic.data.local.dao.ExerciseDao
 import com.shverma.kinetic.data.local.dao.FoodDao
-import com.shverma.kinetic.data.local.dao.MealDao
+import com.shverma.kinetic.data.local.dao.FoodLogDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,12 +31,6 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideMealDao(database: AppDatabase): MealDao {
-        return database.mealDao()
-    }
-
-    @Provides
-    @Singleton
     fun provideExerciseDao(database: AppDatabase): ExerciseDao {
         return database.exerciseDao()
     }
@@ -44,5 +39,17 @@ object DatabaseModule {
     @Singleton
     fun provideFoodDao(database: AppDatabase): FoodDao {
         return database.foodDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideDietPlanDao(database: AppDatabase): DietPlanDao {
+        return database.dietPlanDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFoodLogDao(database: AppDatabase): FoodLogDao {
+        return database.foodLogDao()
     }
 }

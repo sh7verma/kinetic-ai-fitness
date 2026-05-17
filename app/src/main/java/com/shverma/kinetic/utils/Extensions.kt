@@ -55,6 +55,16 @@ fun String.extractQuantity(): Double {
     return this.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 100.0
 }
 
+/**
+ * Formats a goal name (e.g., "fat_loss" or "FAT LOSS" -> "Fat Loss")
+ */
+fun String.formatGoalName(): String {
+    return this.lowercase()
+        .split("_", " ")
+        .filter { it.isNotEmpty() }
+        .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+}
+
 // Progress calculation helpers
 fun calculateProgress(current: Double, target: Double): Float {
     return if (target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f

@@ -1,11 +1,5 @@
 package com.shverma.kinetic.ui.fuel
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,32 +18,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -58,29 +45,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.shverma.kinetic.data.model.Meal
-import com.shverma.kinetic.ui.components.FoodItemRow
-import com.shverma.kinetic.ui.components.KPDivider
 import com.shverma.kinetic.ui.components.KineticDataCard
 import com.shverma.kinetic.ui.components.KineticProgressBar
 import com.shverma.kinetic.ui.components.KineticTopAppBar
-import com.shverma.kinetic.ui.components.mealAccent
-import com.shverma.kinetic.ui.theme.KineticTertiary
 import com.shverma.kinetic.ui.theme.KineticTheme
-import com.shverma.kinetic.ui.theme.LexendFamily
-import com.shverma.kinetic.ui.theme.MealCyan
-import com.shverma.kinetic.ui.theme.MealGray
-import com.shverma.kinetic.ui.theme.MealVolt
-import com.shverma.kinetic.ui.theme.MealWhite
-import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 import com.shverma.kinetic.utils.formatCalories
-import com.shverma.kinetic.utils.formatMacroGrams
 import java.util.Calendar
 
 @Composable
 fun FuelScreen(
     viewModel: FuelViewModel = hiltViewModel(),
     onAIChatClick: () -> Unit = {},
+    onAISyncClick: () -> Unit = {},
     onAddMealClick: () -> Unit = {},
     onEnergyCardClick: () -> Unit = {}
 ) {
@@ -149,6 +125,7 @@ fun FuelScreen(
                             )
                             // AI Sync badge (pill with sparkles icon)
                             Surface(
+                                modifier = Modifier.clickable { onAISyncClick() },
                                 color = colors.primaryContainer.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(100.dp),
                                 border = BorderStroke(
@@ -445,195 +422,10 @@ fun FuelScreen(
                 }
             }
 
-            // 6. DAILY MEAL PLAN
-            state.mealPlan?.let { plan ->
-                item {
-                    Text(
-                        text = "DAILY MEAL PLAN",
-                        style = KineticTheme.typography.labelSm.copy(fontWeight = FontWeight.Bold),
-                        color = colors.onSurfaceVariant
-                    )
-                }
-
-                items(plan.meals) { meal ->
-                    PlannedMealRow(
-                        meal = meal,
-                        isLogged = state.loggedMealNames.contains(meal.name),
-                        onLogClick = { viewModel.onEvent(FuelEvents.LogPlannedMeal(meal)) }
-                    )
-                }
-            }
         }
     }
 }
 
-
-@Composable
-fun PlannedMealRow(meal: Meal, isLogged: Boolean, onLogClick: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val colors = KineticTheme.colors
-    val accent = mealAccent(meal.name)
-    val chevron by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(220),
-        label = "chevron_${meal.name}",
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colors.surfaceContainer)
-            .clickable { expanded = !expanded }
-    ) {
-        // Header row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Accent bar
-            Box(
-                Modifier
-                    .width(3.dp)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(accent.color),
-            )
-            Column(Modifier.weight(1f)) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            meal.name,
-                            color = MealWhite,
-                            fontSize = 14.sp,
-                            fontFamily = LexendFamily,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            meal.time,
-                            color = MealGray,
-                            fontSize = 10.sp,
-                            fontFamily = SpaceGroteskFamily
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        val calories = meal.items.sumOf { it.calories }
-                        Text(
-                            calories.formatCalories(),
-                            color = accent.color,
-                            fontSize = 17.sp,
-                            fontFamily = LexendFamily,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 17.sp
-                        )
-                        Text(
-                            "kcal",
-                            color = MealGray,
-                            fontSize = 9.sp,
-                            fontFamily = SpaceGroteskFamily,
-                            modifier = Modifier.padding(bottom = 1.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.height(6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MealCyan))
-                        Text(
-                            "P: ${meal.items.sumOf { it.proteinG }.formatMacroGrams()}",
-                            color = MealWhite,
-                            fontSize = 11.sp,
-                            fontFamily = SpaceGroteskFamily
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MealVolt))
-                        Text(
-                            "C: ${meal.items.sumOf { it.carbsG }.formatMacroGrams()}",
-                            color = MealWhite,
-                            fontSize = 11.sp,
-                            fontFamily = SpaceGroteskFamily
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(KineticTertiary))
-                        Text(
-                            "F: ${meal.items.sumOf { it.fatsG }.formatMacroGrams()}",
-                            color = MealWhite,
-                            fontSize = 11.sp,
-                            fontFamily = SpaceGroteskFamily
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                onClick = onLogClick,
-                enabled = !isLogged
-            ) {
-                Icon(
-                    imageVector = if (isLogged) Icons.Default.Check else Icons.Default.Add,
-                    contentDescription = if (isLogged) "Meal Logged" else "Log Meal",
-                    tint = if (isLogged) KineticTheme.colors.primary else colors.primaryContainer,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Text("▼", color = MealGray, fontSize = 10.sp, modifier = Modifier.rotate(chevron))
-        }
-
-        // Expanded content
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(tween(300, easing = FastOutSlowInEasing)),
-            exit = shrinkVertically(tween(280, easing = FastOutSlowInEasing)),
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(colors.surfaceContainerHigh)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp)),
-            ) {
-                meal.items.forEachIndexed { i, item ->
-                    FoodItemRow(item = item, accentColor = accent.color)
-                    if (i < meal.items.lastIndex) KPDivider()
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun MacroCard(

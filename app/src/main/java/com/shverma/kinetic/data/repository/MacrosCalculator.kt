@@ -1,7 +1,7 @@
 package com.shverma.kinetic.data.repository
 
-import com.shverma.kinetic.data.model.NutritionStrategy
-import com.shverma.kinetic.data.model.TargetCaloriesData
+import com.shverma.kinetic.data.model.ai.NutritionStrategy
+import com.shverma.kinetic.data.model.ai.TargetCaloriesData
 import com.shverma.kinetic.data.model.UserProfileData
 import kotlin.math.round
 

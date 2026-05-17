@@ -1,7 +1,10 @@
-package com.shverma.kinetic.data.model
+package com.shverma.kinetic.data.model.ai
 
 
 import android.util.Log
+import com.shverma.kinetic.data.model.WorkoutPlanResponse
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 private val json = Json {
@@ -12,14 +15,10 @@ private val json = Json {
 sealed class AIResponse {
 
     data class WorkoutPlan(val data: WorkoutPlanResponse) : AIResponse()
-
-    data class MealPlanResult(val data: MealPlan) : AIResponse()
-
-    data class SingleLogResult(val data: SingleLogResponse) : AIResponse()
-
-    data class MultiLogResult(val data: MultiLogResponse) : AIResponse()
     data class TargetCaloriesResult(val data: TargetCaloriesData) : AIResponse()
+
     data class NutritionStrategyResult(val data: NutritionStrategy) : AIResponse()
+    data class DietPlanResult(val data: AIDietPlanResponse) : AIResponse()
 
     data class TextAnswer(val message: String) : AIResponse()
 
@@ -52,23 +51,6 @@ sealed class AIResponse {
                         WorkoutPlan(parsed)
                     }
 
-                    "meal_plan" -> {
-                        val parsed = json.decodeFromString<MealPlanResponse>(cleaned)
-                        Log.d(TAG, "Parsed MealPlan")
-                        MealPlanResult(parsed.mealPlan)
-                    }
-
-                    "single_log" -> {
-                        val parsed = json.decodeFromString<SingleLogResponse>(cleaned)
-                        Log.d(TAG, "Parsed SingleLog")
-                        SingleLogResult(parsed)
-                    }
-
-                    "multi_log" -> {
-                        val parsed = json.decodeFromString<MultiLogResponse>(cleaned)
-                        Log.d(TAG, "Parsed MultiLog")
-                        MultiLogResult(parsed)
-                    }
 
                     "target_calories" -> {
                         val parsed = json.decodeFromString<TargetCaloriesResponse>(cleaned)
@@ -80,6 +62,12 @@ sealed class AIResponse {
                         val parsed = json.decodeFromString<NutritionStrategy>(cleaned)
                         Log.d(TAG, "Parsed NutritionStrategy: $parsed")
                         NutritionStrategyResult(parsed)
+                    }
+                    "diet_plan" -> {
+                        val parsed = json.decodeFromString<AIDietPlanResponse>(cleaned)
+                        Log.d(TAG, "Parsed FoodEntityAiResponse")
+
+                        DietPlanResult(parsed)
                     }
 
                     null -> {
@@ -106,3 +94,40 @@ sealed class AIResponse {
         }
     }
 }
+
+
+@Serializable
+data class TargetCaloriesResponse(
+    val type: String = "target_calories",
+    val data: TargetCaloriesData = TargetCaloriesData()
+)
+
+@Serializable
+data class TargetCaloriesData(
+    @SerialName("target_calories")
+    val targetCalories: Double = 0.0,
+    @SerialName("protein_g")
+    val proteinG: Double = 0.0,
+    @SerialName("carbs_g")
+    val carbsG: Double = 0.0,
+    @SerialName("fats_g")
+    val fatsG: Double = 0.0,
+    val explanation: String = ""
+)
+
+
+@Serializable
+data class NutritionStrategy(
+    val goal: String = "",
+
+    @SerialName("protein_per_kg")
+    val proteinPerKg: Double = 0.0,
+
+    @SerialName("fat_ratio")
+    val fatRatio: Double = 0.0,
+
+    @SerialName("calorie_adjustment")
+    val calorieAdjustment: Double = 0.0,
+
+    val reasoning: String = ""
+)

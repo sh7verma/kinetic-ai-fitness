@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shverma.kinetic.data.model.UserProfileData
+import com.shverma.kinetic.data.network.FoodAIService
 import com.shverma.kinetic.data.preference.DataStoreHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
@@ -17,12 +18,14 @@ interface UserProfileRepository {
     suspend fun saveUserProfileToFirestore(user: UserProfileData)
     suspend fun fetchUserProfileFromFirestore(uid: String): UserProfileData?
     suspend fun deleteUserFromFirestore(uid: String)
+    suspend fun getInitialTargetCalories(user: UserProfileData): Pair<com.shverma.kinetic.data.model.ai.TargetCaloriesData, com.shverma.kinetic.data.model.ai.NutritionStrategy>?
 }
 
 @Singleton
 class UserProfileRepositoryImpl @Inject constructor(
     private val dataStoreHelper: DataStoreHelper,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val foodAIService: FoodAIService
 ) : UserProfileRepository {
 
     companion object {
@@ -71,5 +74,9 @@ class UserProfileRepositoryImpl @Inject constructor(
             .document(uid)
             .delete()
             .await()
+    }
+
+    override suspend fun getInitialTargetCalories(user: UserProfileData): Pair<com.shverma.kinetic.data.model.ai.TargetCaloriesData, com.shverma.kinetic.data.model.ai.NutritionStrategy>? {
+        return foodAIService.getInitialTargetCalories(user)
     }
 }

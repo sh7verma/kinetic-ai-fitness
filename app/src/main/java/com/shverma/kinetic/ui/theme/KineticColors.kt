@@ -24,6 +24,9 @@ data class KineticColors(
     val onPrimary: Color,
     val onSecondary: Color,
     val onTertiary: Color,
+    val protein: Color,
+    val carbs: Color,
+    val fats: Color,
 )
 
 val KineticDarkColors = KineticColors(
@@ -47,6 +50,9 @@ val KineticDarkColors = KineticColors(
     onPrimary = KineticOnPrimary,
     onSecondary = KineticOnSecondary,
     onTertiary = KineticOnTertiary,
+    protein = KineticPrimaryContainer,
+    carbs = KineticSecondary,
+    fats = KineticTertiary,
 )
 
 val LocalKineticColors = staticCompositionLocalOf<KineticColors> {

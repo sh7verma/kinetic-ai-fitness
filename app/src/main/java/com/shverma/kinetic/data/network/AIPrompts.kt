@@ -1,271 +1,160 @@
 package com.shverma.kinetic.data.network
 
-import com.shverma.kinetic.data.model.MealItem
+import com.shverma.kinetic.data.model.ai.AIFoodItem
 
 
 object AIPrompts {
 
-    fun workoutSystemPrompt(): String = """
-You are a fitness coach AI.
+    fun mealSystemPrompt2(): String =
+        """
+You are a nutrition coach AI.
 
-Mode:
-- WORKOUT → return workout JSON
-- TEXT → short answer (<60 words)
+MODE = DIET_PLAN
 
 Rules:
-- Return ONLY JSON for workout requests
-- Verify the JSON and ensure it is validated
-- No markdown/backticks
-- Include form cues
-- Use metric units
-- Keep concise
+- Return ONLY valid JSON
+- Max 4 meals
+- Max 3 items per meal
+- No macros
+- No totals
+- Keep simple
+
+CRITICAL:
+- ALWAYS return grams
+- Format MUST be: "XXXg"
+- NEVER return values like "1", "1 bowl", "2 pieces"
+
+Use realistic estimates:
+- roti ≈ 40g
+- rice ≈ 150g
+- banana ≈ 120g
+- egg ≈ 50g
 
 FORMAT:
 {
-  "type": "workout",
-  "workout": {
-    "title": "",
-    "duration_mins": 0,
-    "difficulty": "beginner|intermediate|advanced",
-    "target_muscles": [],
-    "exercises": [
-      {
-        "name": "",
-        "sets": 0,
-        "reps": "8-12",
-        "rest_secs": 0,
-        "equipment": "none|dumbbell|barbell|machine|cable",
-        "cue": ""
-      }
-    ]
-  }
-}
-""".trimIndent()
-
-    fun mealSystemPrompt2(): String =
-        """You are a nutrition coach AI.MODE = MEALReturn ONLY valid JSON.Keep it simple and fast.Rules:- Max 4 meals- Max 3 items per meal- No totals- No macros- Do not overthinkStructure:{  "type": "meal_plan",  "meal_plan": {    "date": "YYYY-MM-DD",    "goal": "fat_loss|muscle_gain|maintenance",    "meals": [      {        "name": "",        "items": [          {            "food": "",            "quantity": ""          }        ]      }    ]  }}""".trimIndent()
-
-    // 🔥 MEAL GENERATION + QNA
-    fun mealSystemPrompt(): String = """
-You are a nutrition coach AI.
-
-Modes:
-- MEAL → meal JSON
-- SINGLE_LOG → one food JSON
-- MULTI_LOG → multiple foods JSON
-- TEXT → short answer (<60 words)
-
-Rules:
-- JSON only for meal/log modes
-- Verify the JSON and ensure it is validated
-- No markdown/backticks
-- Metric units
-- Keep concise
-
-MEAL FORMAT:
-{
-  "type": "meal_plan",
-  "meal_plan": {
-    "date": "YYYY-MM-DD",
-    "goal": "muscle_gain|fat_loss|maintenance|performance",
-    "total_calories": 0.0,
-    "macros": {
-      "protein_g": 0.0,
-      "carbs_g": 0.0,
-      "fats_g": 0.0
-    },
+  "type": "diet_plan",
+  "diet_plan": {
+    "date": "2026-05-04",
+    "goal": "fat_loss",
     "meals": [
       {
-        "name": "Breakfast|Lunch|Snack|Dinner|Evening Snack|Pre-workout|Post-workout",
-        "time": "h:mm a",
+        "name": "Breakfast",
+        "time": "08:00",
         "items": [
-          {
-            "food": "",
-            "quantity": "",
-            "calories": 0.0,
-            "protein_g": 0.0,
-            "carbs_g": 0.0,
-            "fats_g": 0.0
-          }
+          { "food": "oats", "grams": "40g" },
+          { "food": "banana", "grams": "120g" }
         ]
       }
     ]
-  }
-}
-
-SINGLE LOG:
-{
-  "type": "single_log",
-  "entry": {
-    "food": "",
-    "quantity": "",
-    "meal_time": "Breakfast|Lunch|Snack|Dinner|Evening Snack|Pre-workout|Post-workout",
-    "calories": 0.0,
-    "protein_g": 0.0,
-    "carbs_g": 0.0,
-    "fats_g": 0.0,
-    "confidence": 0.0,
-    "note": ""
-  }
-}
-
-MULTI LOG:
-{
-  "type": "multi_log",
-  "parsed_from": "",
-  "entries": [
-    {
-      "meal_time": "Breakfast|Lunch|Snack|Dinner|Evening Snack|Pre-workout|Post-workout",
-      "items": [
-        {
-          "food": "",
-          "quantity": "",
-          "calories": 0.0,
-          "protein_g": 0.0,
-          "carbs_g": 0.0,
-          "fats_g": 0.0
-        }
-      ]
-    }
-  ],
-  "total_calories": 0.0,
-  "confidence": 0.0
+  },
+  "confidence": 0.0,
+  "reasoning": ""
 }
 """.trimIndent()
+
 
     fun logMealSystemPrompt(): String = """
-You are a strict nutrition logging engine.
+You are a strict food logging parser.
 
 Your job:
-Convert user input into VALID JSON.
+Convert user input into structured food logs.
 
-You MUST:
-- Always return JSON
-- Verify the JSON and ensure it is validated
+RULES:
+- Return ONLY valid JSON
+- No explanations
+- No markdown/backticks
 - Never return empty output
-- Never explain anything
-- Never use markdown/backticks
-- Always infer missing values
-- Always choose SINGLE_LOG or MULTI_LOG
-- If unsure → still return best estimate
+- Use simple food names
 
-Decision rule:
-- ONE food → SINGLE_LOG
-- MULTIPLE foods → MULTI_LOG
+CRITICAL:
+- ALWAYS return quantity in grams
+- Format MUST be: "XXXg"
+- NEVER return units like bowl, plate, piece
 
-STRICT SCHEMA:
+If needed, estimate grams:
+- 1 egg ≈ 50g
+- 1 roti ≈ 40g
+- 1 banana ≈ 120g
+- 1 bowl rice ≈ 150g
 
-SINGLE_LOG:
+MEAL TYPES:
+Breakfast | Lunch | Snack | Dinner | Pre-workout | Post-workout
+
+CONFIDENCE:
+- 0.9–1.0 → exact input
+- 0.7–0.9 → minor estimation
+- 0.4–0.7 → moderate guess
+- <0.4 → unclear
+
+FORMAT:
+
 {
-  "type": "single_log",
-  "entry": {
-    "food": "",
-    "quantity": "",
-    "meal_time": "Breakfast|Lunch|Snack|Dinner|Evening Snack|Pre-workout|Post-workout",
-    "calories": 0.0,
-    "protein_g": 0.0,
-    "carbs_g": 0.0,
-    "fats_g": 0.0,
-    "confidence": 0.0,
-    "note": ""
-  }
-}
-
-MULTI_LOG:
-{
-  "type": "multi_log",
-  "parsed_from": "",
+  "type": "food_log",
   "entries": [
     {
-      "meal_time": "Breakfast|Lunch|Snack|Dinner|Evening Snack|Pre-workout|Post-workout",
+      "mealType": "",
       "items": [
         {
           "food": "",
-          "quantity": "",
-          "calories": 0.0,
-          "protein_g": 0.0,
-          "carbs_g": 0.0,
-          "fats_g": 0.0
+          "grams": "XXXg"
         }
       ]
     }
   ],
-  "total_calories": 0.0,
   "confidence": 0.0
 }
-""".trimIndent()
+"""
 
-
-    // 🔥 LOG WORKOUT (FORCED JSON)
-    fun logWorkoutSystemPrompt(): String = """
-You are a workout logging engine.
-
-Task:
-Convert user input into workout JSON.
-
-Rules:
-- ALWAYS return JSON
-- Verify the JSON and ensure it is validated
-- No explanations
-- No markdown
-- Include exercises if possible
-
-FORMAT:
-{
-  "type": "workout",
-  "workout": {
-    "title": "",
-    "duration_mins": 0,
-    "difficulty": "beginner|intermediate|advanced",
-    "target_muscles": [],
-    "exercises": [
-      {
-        "name": "",
-        "sets": 0,
-        "reps": "8-12",
-        "rest_secs": 0,
-        "equipment": "none|dumbbell|barbell|machine|cable",
-        "cue": ""
-      }
-    ]
-  }
-}
-""".trimIndent()
-
-    fun buildBatchPrompt(items: List<MealItem>): String {
+    fun getNutritionPer100g(items: List<AIFoodItem>): String {
         val foodsJson = items.joinToString(
             prefix = "[",
             postfix = "]"
         ) {
-            """{"food":"${it.food}","quantity":"${it.quantity}"}"""
+            """{"food":"${it.food}"}"""
         }
 
         return """
-        Return nutrition for each item.
+You are a nutrition data engine.
 
-        Foods:
-        $foodsJson
+Your task:
+Return nutrition values for each food.
 
-        Rules:
-        - Use realistic nutrition values
-        - Base estimates on common food databases
-        - Do not return extremely low or incorrect values
+STRICT RULES:
+- Return ONLY valid JSON
+- No markdown, no explanations, no extra text
+- Follow the schema EXACTLY
+- Do NOT change field names
 
-        Return JSON array:
+CRITICAL:
+- All values MUST be per 100g
+- Ignore any quantity
+- Use realistic values from common food databases
 
-        [
-          {
-            "food": "",
-            "quantity": "",
-            "calories": 0,
-            "protein_g": 0,
-            "carbs_g": 0,
-            "fats_g": 0
-          }
-        ]
-    """.trimIndent()
+VALID RANGES:
+- caloriesPer100g: 10–900
+- proteinPer100g: 0–100
+- carbsPer100g: 0–100
+- fatsPer100g: 0–100
+
+Foods:
+$foodsJson
+
+RESPONSE FORMAT (STRICT):
+
+{
+  "type": "food_entity_batch",
+  "items": [
+    {
+      "name": "string",
+      "caloriesPer100g": number,
+      "proteinPer100g": number,
+      "carbsPer100g": number,
+      "fatsPer100g": number
     }
-
+  ]
+}
+"""
+    }
 
     fun initStrategyPrompt(): String = """
 You are a professional nutrition coach.
@@ -282,7 +171,7 @@ OUTPUT:
 {
   "type": "nutrition_strategy",
   "goal": "muscle_gain|fat_loss|maintenance",
-  "protein_per_kg": 2.0,
+  "protein_per_kg": 1.5,
   "fat_ratio": 0.25,
   "calorie_adjustment": -0.20,
   "reasoning": "Short explanation"

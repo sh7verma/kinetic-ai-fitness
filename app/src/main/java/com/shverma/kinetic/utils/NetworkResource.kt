@@ -1,15 +1,18 @@
 package com.shverma.kinetic.utils
 
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.shverma.kinetic.R
+import com.shverma.kinetic.data.network.OpenAIResponse
 import com.shverma.kinetic.utils.GlobalResourceProvider.getGlobalString
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Response
+import timber.log.Timber
 import java.io.IOException
-
+import kotlin.coroutines.cancellation.CancellationException
 
 
 data class ErrorResponse(
@@ -36,6 +39,35 @@ suspend fun <T : Any> safeApiCall(
         )
     } catch (e: Exception) {
         Resource.Error(getErrorMessage(e))
+    }
+}
+
+suspend fun <R : Any> safeAiCallWithContent(
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    apiCall: suspend () -> OpenAIResponse,
+    transform: (String) -> R
+): R = withContext(dispatcher) {
+    try {
+        val apiResponse = apiCall()
+
+        val content = apiResponse.choices
+            .firstOrNull()
+            ?.message
+            ?.content
+            ?: throw Exception("Empty AI response")
+
+        Timber.tag("AI").d("Raw response: $content")
+
+        val cleaned = content
+            .replace("```json", "")
+            .replace("```", "")
+            .trim()
+
+        transform(cleaned)
+
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        throw Exception(getErrorMessage(e), e)
     }
 }
 

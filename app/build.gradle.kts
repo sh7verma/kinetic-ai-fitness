@@ -122,6 +122,7 @@ dependencies {
     /*Dagger Hilt*/
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.google.dagger.hilt.android)
+    implementation(libs.androidx.compose.foundation.layout)
     kapt(libs.androidx.hilt.compiler)
     kapt(libs.google.dagger.hilt.android.compiler)
 

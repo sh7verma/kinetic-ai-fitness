@@ -1,44 +1,52 @@
 package com.shverma.kinetic.ui.aichat
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shverma.kinetic.data.local.entity.MealEntity
-import com.shverma.kinetic.data.model.AIResponse
-import com.shverma.kinetic.data.model.LogEntry
-import com.shverma.kinetic.data.model.MealItem
-import com.shverma.kinetic.data.model.MealPlan
-import com.shverma.kinetic.data.model.MultiLogResponse
-import com.shverma.kinetic.data.model.SingleLogResponse
-import com.shverma.kinetic.data.model.UserProfileData
-import com.shverma.kinetic.data.model.WorkoutPlan
-import com.shverma.kinetic.data.model.toMealEntity
+import com.shverma.kinetic.data.local.dao.FoodDao
+import com.shverma.kinetic.data.local.dao.FoodLogDao
+import com.shverma.kinetic.data.local.entity.FoodLogEntity
+import com.shverma.kinetic.data.local.entity.toUILog
+import com.shverma.kinetic.data.model.ai.AILogResponse
 import com.shverma.kinetic.data.network.ChatType
-import com.shverma.kinetic.data.preference.DataStoreHelper
-import com.shverma.kinetic.data.repository.ChatRepository
-import com.shverma.kinetic.data.repository.MealRepository
-import com.shverma.kinetic.data.repository.UserProfileRepository
-import com.shverma.kinetic.utils.toIsoDateString
-import com.shverma.kinetic.utils.toTimeString
+import com.shverma.kinetic.data.repository.DietAIRepository
+import com.shverma.kinetic.data.repository.FoodResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import java.util.Date
+import timber.log.Timber
 import javax.inject.Inject
 
+data class UILog(
+    val meals: List<UIMeal>,
+    val isSaved: Boolean = false
+)
+
+data class UIMeal(
+    val mealType: String,
+    val items: List<UIFoodItem>,
+    val totalCalories: Double,
+    val totalProtein: Double,
+    val totalCarbs: Double,
+    val totalFats: Double,
+    val isSaved: Boolean = false
+)
+
+data class UIFoodItem(
+    val name: String,
+    val grams: Double,
+    val calories: Double,
+    val protein: Double,
+    val carbs: Double,
+    val fats: Double,
+)
+
 data class ChatMessage(
-    val text: String,
+    val text: String? = null,
     val isUser: Boolean,
-    val workoutPlan: WorkoutPlan? = null,
-    val mealPlan: MealPlan? = null,
-    val singleLog: SingleLogResponse? = null,
-    val multiLog: MultiLogResponse? = null,
+    val aiLogs: UILog? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -46,32 +54,26 @@ data class AIChatState(
     val messages: List<ChatMessage> = emptyList(),
     val inputText: String = "",
     val isTyping: Boolean = false,
-    val chatType: ChatType = ChatType.WORKOUT
+    val chatType: ChatType = ChatType.LOG_MEAL
 )
 
 @HiltViewModel
 class AIChatViewModel @Inject constructor(
-    private val chatRepository: ChatRepository,
-    private val mealRepository: MealRepository,
-    private val userProfileRepository: UserProfileRepository,
-    private val dataStoreHelper: DataStoreHelper,
-    savedStateHandle: SavedStateHandle
+    private val chatRepository: DietAIRepository,
+    private val foodResolver: FoodResolver,
+    private val foodLogDao: FoodLogDao,
+    private val foodDao: FoodDao
 ) : ViewModel() {
-    private val initialChatTypeStr: String = savedStateHandle["chatType"] ?: "WORKOUT"
-    private val initialChatType = try { ChatType.valueOf(initialChatTypeStr) } catch (e: Exception) { ChatType.WORKOUT }
-
-    private val _state = MutableStateFlow(AIChatState(chatType = initialChatType))
+    private val _state = MutableStateFlow(AIChatState())
     val state: StateFlow<AIChatState> = _state.asStateFlow()
 
     init {
-        updateWelcomeMessage(initialChatType)
+        updateWelcomeMessage()
     }
 
-    private fun updateWelcomeMessage(type: ChatType) {
-        val welcomeMessage = when (type) {
-            ChatType.WORKOUT, ChatType.LOG_WORKOUT -> "Hello! I'm your Kinetic Workout coach. How can I help you with your training today?"
-            ChatType.MEALS, ChatType.LOG_MEAL -> "Hello! I'm your Kinetic Nutrition coach. How can I help you with your meals today?"
-        }
+    private fun updateWelcomeMessage() {
+        val welcomeMessage =
+            "Hello! I'm your Kinetic Nutrition coach. How can I help you with your meals today?"
         _state.update {
             it.copy(
                 messages = it.messages + ChatMessage(welcomeMessage, false)
@@ -79,177 +81,161 @@ class AIChatViewModel @Inject constructor(
         }
     }
 
-    fun onChatTypeChange(type: ChatType) {
-        if (_state.value.chatType == type) return
-        _state.update { it.copy(chatType = type) }
-    }
-
-
     fun onInputChange(text: String) {
         _state.update { it.copy(inputText = text) }
     }
 
-    fun sendMessage() {
-        val currentText = _state.value.inputText
-        if (currentText.isBlank()) return
+    fun onChatTypeChange(type: ChatType) {
+        _state.update { it.copy(chatType = type) }
+    }
 
-        val userMessage = ChatMessage(currentText, true)
+    fun saveMeal(meal: UIMeal) {
+        viewModelScope.launch {
+            try {
+                meal.items.forEach { item ->
+                    val food = foodDao.findBestFood(item.name)
+                    if (food != null) {
+                        foodLogDao.insert(
+                            FoodLogEntity(
+                                foodId = food.foodId,
+                                grams = item.grams,
+                                timestamp = System.currentTimeMillis(),
+                                mealType = meal.mealType
+                            )
+                        )
+                    }
+                }
+                // Update state to mark meal as saved
+                _state.update { currentState ->
+                    val updatedMessages = currentState.messages.map { message ->
+                        if (message.aiLogs != null && message.aiLogs.meals.contains(meal)) {
+                            val updatedMeals = message.aiLogs.meals.map { m ->
+                                if (m == meal) m.copy(isSaved = true) else m
+                            }
+                            val allSaved = updatedMeals.all { it.isSaved }
+                            message.copy(aiLogs = message.aiLogs.copy(meals = updatedMeals, isSaved = allSaved))
+                        } else {
+                            message
+                        }
+                    }
+                    currentState.copy(messages = updatedMessages)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to save meal")
+            }
+        }
+    }
+
+    fun saveAllMeals(uiLog: UILog) {
+        viewModelScope.launch {
+            uiLog.meals.forEach { 
+                if (!it.isSaved) {
+                    saveMeal(it)
+                }
+            }
+        }
+    }
+
+    fun discardLog(message: ChatMessage) {
+        _state.update {
+            it.copy(messages = it.messages.filter { m -> m != message })
+        }
+    }
+
+    fun sendMessage() {
+        val message = _state.value.inputText
+        if (message.isBlank()) return
+
+        Timber.d("sendMessage: User input = $message")
+
         _state.update {
             it.copy(
-                messages = it.messages + userMessage,
+                messages = it.messages + ChatMessage(text = message, isUser = true),
                 inputText = "",
                 isTyping = true
             )
         }
 
         viewModelScope.launch {
-            val currentMealPlan = dataStoreHelper.mealPlan.firstOrNull()?.let {
-                Json.encodeToString(it)
-            } ?: ""
-            val weeklyMeals = mealRepository.getMealsFromDate(Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000).toIsoDateString())
-                .firstOrNull()?.let {
-                    Json.encodeToString(it)
-                } ?: ""
-            val currentWorkoutPlan = dataStoreHelper.workoutPlan.firstOrNull()?.let {
-                Json.encodeToString(it)
-            } ?: ""
-            
-            chatRepository.chat(
-                message = currentText,
-                chatType = _state.value.chatType,
-                weeklyWorkouts = "", // TODO: Get weekly workouts if needed
-                currentMealPlan = currentMealPlan,
-                weeklyMeals = weeklyMeals,
-                currentWorkoutPlan = currentWorkoutPlan
-            ).onSuccess { response ->
-                val aiMessage = when (response) {
-                    is AIResponse.TextAnswer -> ChatMessage(response.message, false)
-                    is AIResponse.WorkoutPlan -> ChatMessage(
-                        text = "I've generated a workout plan for you: ${response.data.workout.title}",
-                        isUser = false,
-                        workoutPlan = response.data.workout
-                    )
+            Timber.d("sendMessage: Calling chatRepository.logFood")
 
-                    is AIResponse.MealPlanResult -> ChatMessage(
-                        text = "I've generated a meal plan for you!",
-                        isUser = false,
-                        mealPlan = response.data
-                    )
+            _state.update { it.copy(isTyping = true) }
+            try {
+                val data = chatRepository.logFood(message)
+                Timber.d("AI Response success, data = $data")
 
-                    is AIResponse.SingleLogResult -> ChatMessage(
-                        text = "I've analyzed your food log.",
-                        isUser = false,
-                        singleLog = response.data
-                    )
+                // ✅ STEP 1: Validate AI response
+                if (!validateFoodLog(data)) {
+                    Timber.e("Invalid AI response")
 
-                    is AIResponse.MultiLogResult -> ChatMessage(
-                        text = "I've analyzed your multiple food entries.",
-                        isUser = false,
-                        multiLog = response.data
-                    )
-
-                    is AIResponse.Error -> ChatMessage(response.message, false)
-                    is AIResponse.TargetCaloriesResult -> ChatMessage(response.data.explanation, false)
-                    else -> {ChatMessage("Sorry, I couldn't understand the response. Please try again.", false)}
+                    _state.update {
+                        it.copy(
+                            isTyping = false,
+                            messages = it.messages + ChatMessage(
+                                text = "Couldn't understand your meal. Try again.",
+                                isUser = false
+                            )
+                        )
+                    }
+                    return@launch
                 }
+
+                // ✅ STEP 2: Safe parsing to UI model
+                val uiLog = runCatching {
+                    data.toUILog(foodResolver = foodResolver)
+                }.getOrElse { e ->
+                    Timber.e(e, "UILog parsing failed")
+
+                    _state.update {
+                        it.copy(
+                            isTyping = false,
+                            messages = it.messages + ChatMessage(
+                                text = "Failed to process meal data",
+                                isUser = false
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                Timber.d("Parsed UILog = $uiLog")
+
+                val aiMessage = ChatMessage(
+                    text = null,
+                    isUser = false,
+                    aiLogs = uiLog
+                )
+
                 _state.update {
                     it.copy(
-                        messages = it.messages + aiMessage,
-                        isTyping = false
+                        isTyping = false,
+                        messages = it.messages + aiMessage
                     )
                 }
-            }.onFailure { e ->
+
+            } catch (e: Exception) {
+                Timber.e(e, "AI call failed")
                 _state.update {
                     it.copy(
-                        messages = it.messages + ChatMessage(e.message ?: "An unexpected error occurred. Please try again.", false),
-                        isTyping = false
+                        isTyping = false,
+                        messages = it.messages + ChatMessage(
+                            text = "Something went wrong",
+                            isUser = false
+                        )
                     )
                 }
             }
         }
     }
+}
 
-    fun saveMealPlan(mealPlan: MealPlan) {
-        val date = Date().toIsoDateString()
+fun validateFoodLog(response: AILogResponse): Boolean {
+    if (response.entries.isEmpty()) return false
 
-        viewModelScope.launch {
-            dataStoreHelper.saveMealPlan(mealPlan)
-            mealPlan.meals.forEach { meal ->
-                mealRepository.insertMeal(meal.toMealEntity(date))
-            }
-            
-            userProfileRepository.getUserProfileData().firstOrNull()?.let { userProfile ->
-                if (userProfile.uid.isNotBlank()) {
-                    mealRepository.saveMealPlanToFirestore(userProfile.uid, mealPlan)
+    return response.entries.all { entry ->
+        entry.items.isNotEmpty() &&
+                entry.items.all { item ->
+                    item.food.isNotBlank()
                 }
-            }
-        }
-    }
-
-    fun saveWorkoutPlan(workoutPlan: WorkoutPlan) {
-        viewModelScope.launch {
-            dataStoreHelper.saveWorkoutPlan(workoutPlan)
-        }
-    }
-
-    fun saveSingleLog(log: SingleLogResponse) {
-        val now = Date()
-        val date = now.toIsoDateString()
-
-        viewModelScope.launch {
-            val mealEntity = MealEntity(
-                name = log.entry.mealTime,
-                time = now.toTimeString(),
-                date = date,
-                items = listOf(
-                    MealItem(
-                        food = log.entry.food,
-                        quantity = log.entry.quantity,
-                        calories = log.entry.calories,
-                        proteinG = log.entry.proteinG,
-                        carbsG = log.entry.carbsG,
-                        fatsG = log.entry.fatsG
-                    )
-                ),
-                totalCalories = log.entry.calories,
-                totalProtein = log.entry.proteinG,
-                totalCarbs = log.entry.carbsG,
-                totalFats = log.entry.fatsG
-            )
-            mealRepository.insertMeal(mealEntity)
-        }
-    }
-
-    fun saveMultiLogEntry(entry: LogEntry) {
-        val now = Date()
-        val date = now.toIsoDateString()
-
-        viewModelScope.launch {
-            val mealEntity = MealEntity(
-                name = entry.mealTime,
-                time = now.toTimeString(),
-                date = date,
-                items = entry.items,
-                totalCalories = entry.totalCalories,
-                totalProtein = entry.totalProtein,
-                totalCarbs = entry.totalCarbs,
-                totalFats = entry.totalFats
-            )
-            mealRepository.insertMeal(mealEntity)
-        }
-    }
-
-    fun saveAllMultiLog(multiLog: MultiLogResponse) {
-        viewModelScope.launch {
-            multiLog.entries.forEach { entry ->
-                saveMultiLogEntry(entry)
-            }
-        }
-    }
-
-    fun discardMessage(message: ChatMessage) {
-        _state.update {
-            it.copy(messages = it.messages.filter { m -> m != message })
-        }
     }
 }

@@ -9,7 +9,6 @@ import com.shverma.kinetic.data.model.UserProfileData
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +22,7 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
     companion object {
         private val EMAIL_KEY = stringPreferencesKey("email")
         private val USER_PROFILE_DATA_KEY = stringPreferencesKey("user_profile_data")
-        private val CURRENT_MEAL_PLAN_KEY = stringPreferencesKey("current_meal_plan")
+        private val CURRENT_DIET_PLAN_KEY = stringPreferencesKey("current_diet_plan")
         private val CURRENT_WORKOUT_PLAN_KEY = stringPreferencesKey("current_workout_plan")
         private val LAST_FOOD_SYNC_KEY = stringPreferencesKey("last_food_sync")
     }
@@ -74,24 +73,6 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
         }
     }
 
-    suspend fun saveMealPlan(plan: com.shverma.kinetic.data.model.MealPlan) {
-        val jsonData = json.encodeToString(plan)
-        dataStore.edit { preferences ->
-            preferences[CURRENT_MEAL_PLAN_KEY] = jsonData
-        }
-    }
-
-    val mealPlan: Flow<com.shverma.kinetic.data.model.MealPlan?> = dataStore.data.map { preferences ->
-        preferences[CURRENT_MEAL_PLAN_KEY]?.let { jsonData ->
-            try {
-                json.decodeFromString<com.shverma.kinetic.data.model.MealPlan>(jsonData)
-            } catch (e: Exception) {
-                Log.e("DataStoreHelper", "Error decoding MealPlan", e)
-                null
-            }
-        }
-    }
-
     suspend fun saveWorkoutPlan(plan: com.shverma.kinetic.data.model.WorkoutPlan) {
         val jsonData = json.encodeToString(plan)
         dataStore.edit { preferences ->
@@ -99,16 +80,36 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
         }
     }
 
-    val workoutPlan: Flow<com.shverma.kinetic.data.model.WorkoutPlan?> = dataStore.data.map { preferences ->
-        preferences[CURRENT_WORKOUT_PLAN_KEY]?.let { jsonData ->
-            try {
-                json.decodeFromString<com.shverma.kinetic.data.model.WorkoutPlan>(jsonData)
-            } catch (e: Exception) {
-                Log.e("DataStoreHelper", "Error decoding WorkoutPlan", e)
-                null
+    val workoutPlan: Flow<com.shverma.kinetic.data.model.WorkoutPlan?> =
+        dataStore.data.map { preferences ->
+            preferences[CURRENT_WORKOUT_PLAN_KEY]?.let { jsonData ->
+                try {
+                    json.decodeFromString<com.shverma.kinetic.data.model.WorkoutPlan>(jsonData)
+                } catch (e: Exception) {
+                    Log.e("DataStoreHelper", "Error decoding WorkoutPlan", e)
+                    null
+                }
             }
         }
+
+    suspend fun saveDietPlan(plan: com.shverma.kinetic.data.model.ai.AIDietPlan) {
+        val jsonData = json.encodeToString(plan)
+        dataStore.edit { preferences ->
+            preferences[CURRENT_DIET_PLAN_KEY] = jsonData
+        }
     }
+
+    val dietPlan: Flow<com.shverma.kinetic.data.model.ai.AIDietPlan?> =
+        dataStore.data.map { preferences ->
+            preferences[CURRENT_DIET_PLAN_KEY]?.let { jsonData ->
+                try {
+                    json.decodeFromString<com.shverma.kinetic.data.model.ai.AIDietPlan>(jsonData)
+                } catch (e: Exception) {
+                    Log.e("DataStoreHelper", "Error decoding DietPlan", e)
+                    null
+                }
+            }
+        }
 
     suspend fun saveLastFoodSync(timestamp: Long) {
         dataStore.edit { preferences ->

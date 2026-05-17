@@ -10,4 +10,16 @@ interface OpenAIService {
         @Header("Authorization") auth: String,
         @Body request: OpenAIRequest
     ): OpenAIResponse
+
+    @POST("v1/chat/completions")
+    suspend fun getCreateDietPlan(
+        @Header("Authorization") auth: String,
+        @Body request: OpenAIRequest
+    ): OpenAIResponse
+
+    @POST("v1/chat/completions")
+    suspend fun logFood(
+        @Header("Authorization") auth: String,
+        @Body request: OpenAIRequest
+    ): OpenAIResponse
 }

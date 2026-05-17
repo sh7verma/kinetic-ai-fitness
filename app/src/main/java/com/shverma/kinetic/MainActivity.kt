@@ -1,6 +1,8 @@
 package com.shverma.kinetic
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,19 +16,16 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import android.content.Intent
-import android.app.Activity
 import com.shverma.kinetic.ui.details.DetailScreen
-import com.shverma.kinetic.ui.home.HomeScreen
 import com.shverma.kinetic.ui.onboarding.screens.OnboardingScreen
 import com.shverma.kinetic.ui.theme.AppTheme
 import com.shverma.kinetic.ui.welcome.WelcomeScreen
-import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
 
@@ -95,15 +94,6 @@ fun AppNavigation(
                 )
             }
 
-            composable<Routes.HomeRoute> {
-                HomeScreen(
-                    snackBarHostState = snackBarHostState,
-                    onItemClick = { itemId ->
-                        navController.navigate(Routes.DetailRoute(itemId))
-                    }
-                )
-            }
-
             composable<Routes.DetailRoute> { navBackStackEntry ->
                 val args = navBackStackEntry.toRoute<Routes.DetailRoute>()
                 DetailScreen(
@@ -124,9 +114,6 @@ object Routes {
 
     @Serializable
     object OnboardingRoute
-
-    @Serializable
-    object HomeRoute
 
     @Serializable
     data class DetailRoute(val id: Int)

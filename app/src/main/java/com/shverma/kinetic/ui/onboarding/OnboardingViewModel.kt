@@ -3,10 +3,9 @@ package com.shverma.kinetic.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.auth.GoogleAuthRepository
-import com.shverma.kinetic.data.model.NutritionStrategy
-import com.shverma.kinetic.data.model.TargetCaloriesData
+import com.shverma.kinetic.data.model.ai.NutritionStrategy
+import com.shverma.kinetic.data.model.ai.TargetCaloriesData
 import com.shverma.kinetic.data.model.UserProfileData
-import com.shverma.kinetic.data.network.OpenAIClient
 import com.shverma.kinetic.data.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,8 +45,7 @@ data class OnboardingUiState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
-    private val authRepository: GoogleAuthRepository,
-    private val openAIClient: OpenAIClient
+    private val authRepository: GoogleAuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -117,7 +115,7 @@ class OnboardingViewModel @Inject constructor(
                 )
 
                 val finalUser = if (initialData.isCompleted && initialData.targetCaloriesData == null) {
-                    val result = openAIClient.getInitialTargetCalories(initialData)
+                    val result = userProfileRepository.getInitialTargetCalories(initialData)
                     if (result != null) {
                         val (aiTargets, strategy) = result
                         val updatedData = initialData.copy(

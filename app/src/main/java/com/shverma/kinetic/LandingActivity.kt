@@ -1,5 +1,6 @@
 package com.shverma.kinetic
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,23 +8,41 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.EventNote
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Sports
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,23 +54,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import android.app.Activity
-import androidx.compose.ui.platform.LocalContext
 import com.shverma.kinetic.data.network.ChatType
-import com.shverma.kinetic.ui.theme.AppTheme
-import com.shverma.kinetic.ui.theme.KineticTheme
-import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
-import com.shverma.kinetic.ui.plan.PlanScreen
-import com.shverma.kinetic.ui.fuel.FuelScreen
-import com.shverma.kinetic.ui.stats.StatsScreen
-import com.shverma.kinetic.ui.coach.CoachScreen
-import com.shverma.kinetic.ui.profile.ProfileScreen
-import com.shverma.kinetic.ui.logexercise.LogExerciseScreen
 import com.shverma.kinetic.ui.aichat.AIChatScreen
-import com.shverma.kinetic.ui.fuel.LogMealsScreen
+import com.shverma.kinetic.ui.coach.CoachScreen
+import com.shverma.kinetic.ui.diet.CreateDietPlanScreen
+import com.shverma.kinetic.ui.diet.DietPlanScreen
+import com.shverma.kinetic.ui.fuel.FuelScreen
+import com.shverma.kinetic.ui.logexercise.LogExerciseScreen
+import com.shverma.kinetic.ui.plan.PlanScreen
+import com.shverma.kinetic.ui.profile.ProfileScreen
+import com.shverma.kinetic.ui.stats.StatsScreen
+import com.shverma.kinetic.ui.theme.AppTheme
+import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
-import com.shverma.kinetic.BuildConfig
 
 @AndroidEntryPoint
 class LandingActivity : ComponentActivity() {
@@ -67,16 +83,32 @@ class LandingActivity : ComponentActivity() {
 }
 
 object LandingRoutes {
-    @Serializable object Plan
-    @Serializable object Fuel
-    @Serializable object Stats
-    @Serializable object Coach
-    @Serializable object Profile
-    @Serializable object LogExercise
+    @Serializable
+    object Plan
+
+    @Serializable
+    object Fuel
+
+    @Serializable
+    object Stats
+
+    @Serializable
+    object Coach
+
+    @Serializable
+    object Profile
+
+    @Serializable
+    object LogExercise
+
     @Serializable
     data class AIChat(val chatType: String)
-    @Serializable object LogMeals
-    @Serializable object TodayMealPlan
+
+    @Serializable
+    object DietPlan
+
+    @Serializable
+    object CreateDietPlan
 }
 
 @Composable
@@ -86,8 +118,8 @@ fun LandingScreen() {
     val currentDestination = navBackStackEntry?.destination
     val showBottomBar = currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false &&
             currentDestination?.hasRoute<LandingRoutes.AIChat>() == false &&
-            currentDestination?.hasRoute<LandingRoutes.LogMeals>() == false &&
-            currentDestination?.hasRoute<LandingRoutes.TodayMealPlan>() == false
+            currentDestination?.hasRoute<LandingRoutes.DietPlan>() == false &&
+            currentDestination?.hasRoute<LandingRoutes.CreateDietPlan>() == false
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -118,41 +150,43 @@ fun LandingScreen() {
                 .fillMaxSize()
                 .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp) // Avoid extra padding if screens have their own Scaffold
         ) {
-            composable<LandingRoutes.Plan> { 
+            composable<LandingRoutes.Plan> {
                 PlanScreen(
                     onLogComplete = {
                         navController.navigate(LandingRoutes.LogExercise)
                     },
                     onAIChatClick = {
-                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.WORKOUT.name))
+
                     }
-                ) 
+                )
             }
-            composable<LandingRoutes.Fuel> { 
+            composable<LandingRoutes.Fuel> {
                 FuelScreen(
                     onAIChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     },
+                    onAISyncClick = {
+
+                    },
                     onAddMealClick = {
-                        navController.navigate(LandingRoutes.LogMeals)
+
                     },
                     onEnergyCardClick = {
-                        navController.navigate(LandingRoutes.TodayMealPlan)
+                        navController.navigate(LandingRoutes.DietPlan)
                     }
-                ) 
+                )
             }
             composable<LandingRoutes.Stats> { StatsScreen() }
-            composable<LandingRoutes.Coach> { 
+            composable<LandingRoutes.Coach> {
                 CoachScreen(
                     onWorkoutChatClick = {
-                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.WORKOUT.name))
                     },
                     onMealChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     }
                 )
             }
-            composable<LandingRoutes.Profile> { 
+            composable<LandingRoutes.Profile> {
                 val context = LocalContext.current
                 ProfileScreen(
                     onLogout = {
@@ -162,12 +196,12 @@ fun LandingScreen() {
                             activity.finish()
                         }
                     }
-                ) 
+                )
             }
-            composable<LandingRoutes.LogExercise> { 
+            composable<LandingRoutes.LogExercise> {
                 LogExerciseScreen(
                     onBackClick = { navController.popBackStack() }
-                ) 
+                )
             }
             composable<LandingRoutes.AIChat> { backStackEntry ->
                 val args = backStackEntry.toRoute<LandingRoutes.AIChat>()
@@ -175,13 +209,16 @@ fun LandingScreen() {
                     onBackClick = { navController.popBackStack() }
                 )
             }
-            composable<LandingRoutes.LogMeals> {
-                LogMealsScreen(
-                    onBackClick = { navController.popBackStack() }
+            composable<LandingRoutes.DietPlan> {
+                DietPlanScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onCreatePlanClick = {
+                        navController.navigate(LandingRoutes.CreateDietPlan)
+                    }
                 )
             }
-            composable<LandingRoutes.TodayMealPlan> {
-                com.shverma.kinetic.ui.fuel.TodayMealPlanScreen(
+            composable<LandingRoutes.CreateDietPlan> {
+                CreateDietPlanScreen(
                     onBackClick = { navController.popBackStack() }
                 )
             }
@@ -251,7 +288,7 @@ fun KineticNavigationItem(
 
     val activeColor = Color(0xFFCCFF00)
     val inactiveColor = Color(0xFF737373).copy(alpha = 0.6f)
-    
+
     val contentColor = if (isActive) activeColor else inactiveColor
 
     Column(
@@ -266,8 +303,8 @@ fun KineticNavigationItem(
                             isPressed = false
                         }
                     },
-                    onTap = { 
-                        onClick() 
+                    onTap = {
+                        onClick()
                     }
                 )
             }

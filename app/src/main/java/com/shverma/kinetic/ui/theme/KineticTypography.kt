@@ -45,8 +45,10 @@ val BarlowCondensedFamily = FontFamily(
 data class KineticTypography(
     val displayLg: TextStyle,
     val displayMd: TextStyle,
+    val displaySm: TextStyle,
     val titleLg: TextStyle,
     val titleMd: TextStyle,
+    val titleSm: TextStyle,
     val bodyLg: TextStyle,
     val bodyMd: TextStyle,
     val bodySm: TextStyle,
@@ -68,6 +70,12 @@ val KineticTypographyDefaults = KineticTypography(
         fontSize = 32.sp,
         lineHeight = 40.sp,
     ),
+    displaySm = TextStyle(
+        fontFamily = LexendFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+    ),
     titleLg = TextStyle(
         fontFamily = LexendFamily,
         fontWeight = FontWeight.Bold,
@@ -79,6 +87,12 @@ val KineticTypographyDefaults = KineticTypography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 26.sp,
+    ),
+    titleSm = TextStyle(
+        fontFamily = LexendFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
     ),
     bodyLg = TextStyle(
         fontFamily = SpaceGroteskFamily,

@@ -25,8 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.shverma.kinetic.data.model.MealPlan
 import com.shverma.kinetic.data.network.ChatType
+import com.shverma.kinetic.ui.aichat.components.LogFoodComponent
 import com.shverma.kinetic.ui.components.*
 import com.shverma.kinetic.ui.theme.KineticTheme
 import kotlinx.coroutines.launch
@@ -43,10 +43,7 @@ fun AIChatScreen(
     val coroutineScope = rememberCoroutineScope()
     
     val chatTypeOptions = listOf(
-        ChatTypeOption(ChatType.MEALS, "Meals", colors.secondary),
         ChatTypeOption(ChatType.LOG_MEAL, "Log Meal", Color(0xFF00BFAE)),
-        ChatTypeOption(ChatType.WORKOUT, "Workout", colors.primaryContainer),
-        ChatTypeOption(ChatType.LOG_WORKOUT, "Log Workout", colors.tertiary)
     )
 
     // Scroll to bottom when messages change or typing starts
@@ -101,12 +98,9 @@ fun AIChatScreen(
                     ChatBubble(
                         message = message,
                         colors = colors,
-                        onSaveMealPlan = { viewModel.saveMealPlan(it) },
-                        onSaveWorkoutPlan = { viewModel.saveWorkoutPlan(it) },
-                        onSaveSingleLog = { message.singleLog?.let { viewModel.saveSingleLog(it) } },
-                        onSaveMultiLogEntry = { viewModel.saveMultiLogEntry(it) },
-                        onSaveAllMultiLog = { message.multiLog?.let { viewModel.saveAllMultiLog(it) } },
-                        onDiscard = { viewModel.discardMessage(message) }
+                        onSaveMeal = { viewModel.saveMeal(it) },
+                        onSaveAll = { viewModel.saveAllMeals(it) },
+                        onDiscard = { viewModel.discardLog(it) }
                     )
                 }
 
@@ -134,12 +128,9 @@ fun AIChatScreen(
 fun ChatBubble(
     message: ChatMessage,
     colors: com.shverma.kinetic.ui.theme.KineticColors,
-    onSaveMealPlan: (MealPlan) -> Unit,
-    onSaveWorkoutPlan: (com.shverma.kinetic.data.model.WorkoutPlan) -> Unit,
-    onSaveSingleLog: () -> Unit,
-    onSaveMultiLogEntry: (com.shverma.kinetic.data.model.LogEntry) -> Unit,
-    onSaveAllMultiLog: () -> Unit,
-    onDiscard: () -> Unit,
+    onSaveMeal: (UIMeal) -> Unit,
+    onSaveAll: (UILog) -> Unit,
+    onDiscard: (ChatMessage) -> Unit,
 ) {
     val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
     val bgColor = if (message.isUser) colors.primaryContainer else colors.surfaceContainer
@@ -148,7 +139,7 @@ fun ChatBubble(
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(if (message.mealPlan != null || message.singleLog != null || message.multiLog != null) 0.95f else 0.85f)
+                .fillMaxWidth(if (message.aiLogs != null) 0.95f else 0.85f)
                 .clip(
                     RoundedCornerShape(
                         topStart = 16.dp,
@@ -157,51 +148,23 @@ fun ChatBubble(
                         bottomEnd = if (message.isUser) 0.dp else 16.dp
                     )
                 )
-                .background(if (message.mealPlan != null || message.singleLog != null || message.multiLog != null) Color.Transparent else bgColor)
-                .padding(if (message.mealPlan != null || message.singleLog != null || message.multiLog != null) 0.dp else 12.dp)
+                .background(if (message.aiLogs != null) Color.Transparent else bgColor)
+                .padding(if (message.aiLogs != null) 0.dp else 12.dp)
         ) {
-            if (message.mealPlan == null && message.singleLog == null && message.multiLog == null) {
+            if (message.aiLogs == null) {
                 Text(
-                    text = message.text,
+                    text = message.text ?: "",
                     style = KineticTheme.typography.bodyMd,
                     color = textColor
                 )
             }
 
-            message.workoutPlan?.let { workout ->
-                Spacer(modifier = Modifier.height(8.dp))
-                workout.exercises.forEach { exercise ->
-                    Text(
-                        text = "• ${exercise.name} (${exercise.sets}x${exercise.reps})",
-                        style = KineticTheme.typography.bodySm,
-                        color = textColor
-                    )
-                }
-            }
-
-            message.mealPlan?.let { mealPlan ->
-                MealPlanCard(
-                    plan = mealPlan,
-                    onSaveMeal = { /* Injected via callback if needed, but here we have saveAll */ },
-                    onSaveAll = { onSaveMealPlan(mealPlan) },
-                    onDiscard = onDiscard
-                )
-            }
-
-            message.singleLog?.let { log ->
-                QuickLogCard(
-                    entry = log,
-                    onSave = { onSaveSingleLog() },
-                    onDiscard = onDiscard
-                )
-            }
-
-            message.multiLog?.let { log ->
-                MultiLogCard(
-                    data = log,
-                    onSaveEntry = { onSaveMultiLogEntry(it) },
-                    onSaveAll = { onSaveAllMultiLog() },
-                    onDiscard = onDiscard
+            message.aiLogs?.let { log ->
+                LogFoodComponent(
+                    uiLog = log,
+                    onSaveMeal = onSaveMeal,
+                    onSaveAll = { onSaveAll(log) },
+                    onDiscard = { onDiscard(message) }
                 )
             }
         }

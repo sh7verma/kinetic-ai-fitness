@@ -1,198 +1,158 @@
 package com.shverma.kinetic.ui.fuel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shverma.kinetic.data.repository.MealRepository
+import com.shverma.kinetic.data.local.dao.FoodDao
+import com.shverma.kinetic.data.local.dao.FoodLogDao
+import com.shverma.kinetic.data.local.entity.FoodEntity
+import com.shverma.kinetic.data.local.entity.FoodLogEntity
+import com.shverma.kinetic.data.local.entity.FoodLogWithFood
+import com.shverma.kinetic.data.model.ai.TargetCaloriesData
+import com.shverma.kinetic.data.repository.FoodResolver
+import com.shverma.kinetic.data.repository.MacrosCalculator
 import com.shverma.kinetic.data.repository.UserProfileRepository
-import com.shverma.kinetic.data.model.Meal
-import com.shverma.kinetic.data.model.MealPlan
-import com.shverma.kinetic.data.model.toMealEntity
-import kotlinx.coroutines.launch
-import com.shverma.kinetic.data.preference.DataStoreHelper
-import com.shverma.kinetic.utils.addDays
-import com.shverma.kinetic.utils.calculateProgress
 import com.shverma.kinetic.utils.formatCalories
-import com.shverma.kinetic.utils.formatMacroGrams
 import com.shverma.kinetic.utils.formatPercentage
-import com.shverma.kinetic.utils.getStartOfWeek
-import com.shverma.kinetic.utils.subtractDays
-import com.shverma.kinetic.utils.toDayOfWeekShort
-import com.shverma.kinetic.utils.toIsoDateString
 import com.shverma.kinetic.utils.toTimeString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import java.util.Calendar
 import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
 class FuelViewModel @Inject constructor(
-    private val mealRepository: MealRepository,
     private val userProfileRepository: UserProfileRepository,
-    private val dataStoreHelper: DataStoreHelper
+    private val foodLogDao: FoodLogDao,
+    private val foodDao: FoodDao,
+    private val foodResolver: FoodResolver
 ) : ViewModel() {
 
-    private val TAG = "FuelViewModel"
+    private val startOfDay = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
-    private val _state = MutableStateFlow(FuelState())
-    val state: StateFlow<FuelState> = _state.asStateFlow()
+    private val endOfDay = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }.timeInMillis
 
-    init {
-        loadInitialData()
-        observeData()
-        fetchFirestoreMealPlanIfNeeded()
-    }
+    private val startOfWeek = Calendar.getInstance().apply {
+        firstDayOfWeek = Calendar.MONDAY
+        set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
-    private fun fetchFirestoreMealPlanIfNeeded() {
-        android.util.Log.d(TAG, "fetchFirestoreMealPlanIfNeeded called")
-        viewModelScope.launch {
-            val currentPlan = dataStoreHelper.mealPlan.firstOrNull()
-            if (currentPlan == null) {
-                android.util.Log.d(TAG, "No local meal plan, checking Firestore")
-                val user = userProfileRepository.getUserProfileData().firstOrNull()
-                if (user != null && user.uid.isNotBlank()) {
-                    val today = Date().toIsoDateString()
-                    android.util.Log.d(TAG, "Fetching plan for user ${user.uid} on $today")
-                    val firestorePlan = mealRepository.getMealPlanFromFirestore(user.uid, today)
-                    if (firestorePlan != null) {
-                        android.util.Log.d(TAG, "Found meal plan in Firestore, saving locally")
-                        dataStoreHelper.saveMealPlan(firestorePlan)
-                    } else {
-                        android.util.Log.d(TAG, "No meal plan found in Firestore")
-                    }
-                } else {
-                    android.util.Log.d(TAG, "No user found or UID blank")
-                }
-            } else {
-                android.util.Log.d(TAG, "Local meal plan already exists")
-            }
-        }
-    }
+    val state: StateFlow<FuelState> = combine(
+        userProfileRepository.getUserProfileData(),
+        foodLogDao.getFoodLogsWithFoodInRange(startOfDay, endOfDay),
+        foodLogDao.getFoodLogsWithFoodInRange(startOfWeek, endOfDay)
+    ) { profile, dailyLogs, weeklyLogs ->
+        if (profile == null) return@combine FuelState()
 
-    private fun observeData() {
-        val today = Date().toIsoDateString()
-        val startOfWeek = Date().getStartOfWeek().toIsoDateString()
+        val target = profile.targetCaloriesData ?: MacrosCalculator.fallback(profile)
 
-        combine(
-            mealRepository.getMealsByDate(today),
-            mealRepository.getMealsFromDate(startOfWeek),
-            userProfileRepository.getUserProfileData(),
-            dataStoreHelper.mealPlan
-        ) { meals, currentWeekMeals, userProfile, mealPlan ->
-            Log.d("FuelViewModel", "Meals: ${meals.size}, UserProfile: ${userProfile != null}, MealPlan: ${mealPlan != null}")
-            
-            val totalEaten = meals.sumOf { it.totalCalories }
-            val targetCalories = mealPlan?.totalCalories
-                ?: userProfile?.targetCaloriesData?.targetCalories
-                ?: userProfile?.calculateTargetCalories()
-                ?: 2000.0
-            val remaining = targetCalories - totalEaten
+        // 1. Calculate Daily Totals
+        var totalCalories = 0.0
+        var totalProtein = 0.0
+        var totalCarbs = 0.0
+        var totalFats = 0.0
+        val items = mutableListOf<FuelItem>()
 
-            val totalProtein = meals.sumOf { it.totalProtein }
-            val totalCarbs = meals.sumOf { it.totalCarbs }
-            val totalFats = meals.sumOf { it.totalFats }
+        dailyLogs.forEach { logWithFood ->
+            val log = logWithFood.log
+            val food = logWithFood.food
+            val factor = log.grams / 100.0
+            val calories = food.caloriesPer100g * factor
+            val protein = food.proteinPer100g * factor
+            val carbs = food.carbsPer100g * factor
+            val fats = food.fatsPer100g * factor
 
-            // Calculate targets
-            var targetProtein = 0.0
-            var targetCarbs = 0.0
-            var targetFats = 0.0
+            totalCalories += calories
+            totalProtein += protein
+            totalCarbs += carbs
+            totalFats += fats
 
-            if (mealPlan != null) {
-                targetProtein = mealPlan.macros.proteinG
-                targetCarbs = mealPlan.macros.carbsG
-                targetFats = mealPlan.macros.fatsG
-            } else if (userProfile?.targetCaloriesData != null) {
-                targetProtein = userProfile.targetCaloriesData.proteinG
-                targetCarbs = userProfile.targetCaloriesData.carbsG
-                targetFats = userProfile.targetCaloriesData.fatsG
-            } else {
-                // Default macro split: 30% Protein, 45% Carbs, 25% Fats
-                targetProtein = (targetCalories * 0.30) / 4
-                targetCarbs = (targetCalories * 0.45) / 4
-                targetFats = (targetCalories * 0.25) / 9
-            }
-
-            // Calculate weekly trend
-            val trendMap = currentWeekMeals.groupBy { it.date }
-                .mapValues { entry -> entry.value.sumOf { it.totalCalories } }
-
-            val weeklyTrend = mutableListOf<Pair<String, Double>>()
-            var tempDate = Date().getStartOfWeek()
-            for (i in 0..6) {
-                val dateStr = tempDate.toIsoDateString()
-                val dayStr = tempDate.toDayOfWeekShort().take(1).uppercase()
-                weeklyTrend.add(dayStr to (trendMap[dateStr] ?: 0.0))
-                tempDate = tempDate.addDays(1)
-            }
-
-            _state.update { currentState ->
-                currentState.copy(
-                    aiExplanation=userProfile?.targetCaloriesData?.explanation?:"",
-                    caloriesValue = remaining.formatCalories(),
-                    caloriesEaten = totalEaten.formatCalories(),
-                    caloriesProgress = calculateProgress(totalEaten, targetCalories),
-                    caloriesTarget = targetCalories.formatCalories(),
-                    proteinValue = totalProtein.formatMacroGrams(),
-                    proteinPercent = if (targetProtein > 0) (totalProtein / targetProtein * 100).formatPercentage() else "0%",
-                    carbsValue = totalCarbs.formatMacroGrams(),
-                    carbsPercent = if (targetCarbs > 0) (totalCarbs / targetCarbs * 100).formatPercentage() else "0%",
-                    fatsValue = totalFats.formatMacroGrams(),
-                    fatsPercent = if (targetFats > 0) (totalFats / targetFats * 100).formatPercentage() else "0%",
-                    mealPlan = mealPlan,
-                    loggedMealNames = meals.map { it.name }.toSet(),
-                    weeklyTrend = weeklyTrend
+            items.add(
+                FuelItem(
+                    title = food.name,
+                    category = log.mealType,
+                    time = Date(log.timestamp ?: log.createdAt).toTimeString(),
+                    calories = calories
                 )
-            }
-        }.launchIn(viewModelScope)
-    }
-
-    fun onEvent(event: FuelEvents) {
-        android.util.Log.d(TAG, "Event: $event")
-        when (event) {
-            is FuelEvents.LoadData -> loadInitialData()
-            is FuelEvents.AddMeal -> addMeal()
-            is FuelEvents.LogPlannedMeal -> logPlannedMeal(event.meal)
+            )
         }
-    }
 
-    private fun logPlannedMeal(meal: Meal) {
-        android.util.Log.d(TAG, "Logging planned meal: ${meal.name}")
-        viewModelScope.launch {
-            try {
-                val today = Date().toIsoDateString()
-                val now = Date().toTimeString()
-                mealRepository.insertMeal(meal.copy(time = now).toMealEntity(today))
-                android.util.Log.d(TAG, "Planned meal logged successfully")
-            } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error logging planned meal: ${e.message}", e)
+        // 2. Calculate Weekly Trend
+        val dayLabels = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+        val caloriesPerDay = DoubleArray(7)
+
+        val calendar = Calendar.getInstance()
+        weeklyLogs.forEach { logWithFood ->
+            val log = logWithFood.log
+            val food = logWithFood.food
+            val calories = food.caloriesPer100g * (log.grams / 100.0)
+            calendar.timeInMillis = log.timestamp ?: log.createdAt
+            // Adjust to 0-indexed Monday
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            val index = when (dayOfWeek) {
+                Calendar.MONDAY -> 0
+                Calendar.TUESDAY -> 1
+                Calendar.WEDNESDAY -> 2
+                Calendar.THURSDAY -> 3
+                Calendar.FRIDAY -> 4
+                Calendar.SATURDAY -> 5
+                Calendar.SUNDAY -> 6
+                else -> 0
             }
+            caloriesPerDay[index] += calories
         }
-    }
 
-    private fun addMeal() {
-        // Not implemented in repository yet, but keeping original structure
-    }
+        val weeklyTrend = dayLabels.mapIndexed { index, label ->
+            label to caloriesPerDay[index]
+        }
 
-    private fun loadInitialData() {
-        // Data is now observed from repository
-    }
-}
+        val remaining = (target.targetCalories - totalCalories).coerceAtLeast(0.0)
 
-sealed class FuelEvents {
-    data object LoadData : FuelEvents()
-    data object AddMeal : FuelEvents()
-    data class LogPlannedMeal(val meal: Meal) : FuelEvents()
+        FuelState(
+            caloriesValue = remaining.formatCalories(),
+            aiExplanation = target.explanation ?: "Based on your profile",
+            caloriesProgress = (totalCalories / target.targetCalories).toFloat().coerceIn(0f, 1f),
+            caloriesEaten = totalCalories.formatCalories(),
+            caloriesTarget = target.targetCalories.formatCalories(),
+            proteinValue = String.format("%.0f/%.0fg", totalProtein, target.proteinG),
+            proteinPercent = ((totalProtein / target.proteinG) * 100).formatPercentage(),
+            carbsValue = String.format("%.0f/%.0fg", totalCarbs, target.carbsG),
+            carbsPercent = ((totalCarbs / target.carbsG) * 100).formatPercentage(),
+            fatsValue = String.format("%.0f/%.0fg", totalFats, target.fatsG),
+            fatsPercent = ((totalFats / target.fatsG) * 100).formatPercentage(),
+            loggedMealNames = dailyLogs.map { it.log.mealType }.toSet(),
+            items = items,
+            weeklyTrend = weeklyTrend
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = FuelState()
+    )
 }
 
 data class FuelState(
     val caloriesValue: String = "",
-    val aiExplanation : String = "",
+    val aiExplanation: String = "",
     val caloriesProgress: Float = 0f,
     val caloriesEaten: String = "",
     val caloriesTarget: String = "",
@@ -203,8 +163,8 @@ data class FuelState(
     val fatsValue: String = "",
     val fatsPercent: String = "",
     val weeklyTrend: List<Pair<String, Double>> = emptyList(),
-    val mealPlan: MealPlan? = null,
-    val loggedMealNames: Set<String> = emptySet()
+    val loggedMealNames: Set<String> = emptySet(),
+    val items: List<FuelItem> = emptyList()
 )
 
 data class FuelItem(val title: String, val category: String, val time: String, val calories: Double)

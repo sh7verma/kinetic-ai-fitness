@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.shverma.kinetic.data.model.UserProfileData
 import com.shverma.kinetic.ui.components.KineticSecondaryButton
 import com.shverma.kinetic.ui.theme.KineticTheme
+import com.shverma.kinetic.utils.formatGoalName
 
 @Composable
 fun ProfileScreen(
@@ -128,8 +129,8 @@ fun ProfileInfoSection(profile: UserProfileData) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         
-        ProfileItem(label = "Workout Goal", value = profile.workoutGoal)
-        ProfileItem(label = "Activity Level", value = profile.activityLevel)
+        ProfileItem(label = "Workout Goal", value = profile.workoutGoal.formatGoalName())
+        ProfileItem(label = "Activity Level", value = profile.activityLevel.formatGoalName())
     }
 }
 

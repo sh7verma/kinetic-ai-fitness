@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 fun HomeScreen(
     snackBarHostState: SnackbarHostState,
     onItemClick: (Int) -> Unit,
+    onNavigateToDietPlan: () -> Unit,
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -49,6 +50,11 @@ fun HomeScreen(
                 color = colors.onSurface
             )
         }
+
+        KineticPrimaryButton(
+            text = "Diet Plan Editor",
+            onClick = onNavigateToDietPlan
+        )
 
         KineticPrimaryButton(
             text = "Refresh",
