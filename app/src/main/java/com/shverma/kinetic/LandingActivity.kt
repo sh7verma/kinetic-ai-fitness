@@ -22,23 +22,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Sports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,7 +56,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.ui.aichat.AIChatScreen
 import com.shverma.kinetic.ui.coach.CoachScreen
@@ -71,6 +69,7 @@ import com.shverma.kinetic.ui.stats.StatsScreen
 import com.shverma.kinetic.ui.theme.AppTheme
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @AndroidEntryPoint
@@ -122,10 +121,8 @@ fun LandingScreen() {
     val currentDestination = navBackStackEntry?.destination
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val showBottomBar = currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false &&
-            currentDestination?.hasRoute<LandingRoutes.AIChat>() == false &&
-            currentDestination?.hasRoute<LandingRoutes.DietPlan>() == false &&
-            currentDestination?.hasRoute<LandingRoutes.CreateDietPlan>() == false
+    val showBottomBar =
+        currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false && !currentDestination.hasRoute<LandingRoutes.AIChat>() && !currentDestination.hasRoute<LandingRoutes.DietPlan>() && !currentDestination.hasRoute<LandingRoutes.CreateDietPlan>()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -204,8 +201,7 @@ fun LandingScreen() {
                     onBackClick = { navController.popBackStack() }
                 )
             }
-            composable<LandingRoutes.AIChat> { backStackEntry ->
-                val args = backStackEntry.toRoute<LandingRoutes.AIChat>()
+            composable<LandingRoutes.AIChat> {
                 AIChatScreen(
                     onBackClick = { navController.popBackStack() }
                 )
@@ -234,7 +230,7 @@ fun KineticBottomNavigation(
 ) {
     val tabs = remember {
         val allTabs = listOf(
-            NavigationItem("Plan", Icons.Outlined.EventNote, LandingRoutes.Plan),
+            NavigationItem("Plan", Icons.AutoMirrored.Outlined.EventNote, LandingRoutes.Plan),
             NavigationItem("Fuel", Icons.Outlined.LocalFireDepartment, LandingRoutes.Fuel),
             NavigationItem("Stats", Icons.Outlined.BarChart, LandingRoutes.Stats),
             NavigationItem("Coach", Icons.Outlined.Sports, LandingRoutes.Coach),
@@ -297,12 +293,7 @@ fun KineticNavigationItem(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
-                        isPressed = true
-                        try {
-                            awaitRelease()
-                        } finally {
-                            isPressed = false
-                        }
+                        tryAwaitRelease()
                     },
                     onTap = {
                         onClick()
