@@ -3,6 +3,7 @@ package com.shverma.kinetic.ui.aichat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
@@ -17,65 +18,27 @@ import androidx.compose.ui.unit.sp
 import com.shverma.kinetic.ui.aichat.UIFoodItem
 import com.shverma.kinetic.ui.aichat.UIMeal
 import com.shverma.kinetic.ui.aichat.UILog
+import com.shverma.kinetic.ui.components.InlineMacro
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 
 @Composable
 fun LogFoodComponent(
     uiLog: UILog,
-    onSaveMeal: (UIMeal) -> Unit,
-    onSaveAll: () -> Unit,
-    onDiscard: () -> Unit,
+    onLogMeal: (UIMeal) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = KineticTheme.colors
-    val typography = KineticTheme.typography
-
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         uiLog.meals.forEach { meal ->
             MealCard(
                 meal = meal,
-                onSave = { onSaveMeal(meal) }
+                onLog = { onLogMeal(meal) }
             )
-        }
-
-        if (!uiLog.isSaved) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onSaveAll,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primaryContainer,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("SAVE", style = typography.labelSm.copy(fontWeight = FontWeight.Bold))
-                }
-
-                OutlinedButton(
-                    onClick = onDiscard,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = colors.error
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        colors.error.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("DISCARD", style = typography.labelSm.copy(fontWeight = FontWeight.Bold))
-                }
-            }
         }
     }
 }
@@ -83,75 +46,113 @@ fun LogFoodComponent(
 @Composable
 fun MealCard(
     meal: UIMeal,
-    onSave: () -> Unit,
+    onLog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = KineticTheme.colors
     val typography = KineticTheme.typography
 
+    val containerColor = if (meal.isSaved) colors.background else colors.surfaceContainerLow
+    val borderColor = if (meal.isSaved) colors.primaryContainer.copy(alpha = 0.1f) else colors.outlineVariant.copy(alpha = 0.2f)
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surfaceContainerLow
+            containerColor = containerColor
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.3f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = meal.mealType.uppercase(),
-                    style = typography.labelSm.copy(
-                        fontFamily = SpaceGroteskFamily,
-                        color = colors.primaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (meal.isSaved) {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Done,
-                            contentDescription = "Saved",
-                            tint = colors.primaryContainer,
-                            modifier = Modifier.size(16.dp)
+                Column {
+                    Text(
+                        text = meal.mealType.uppercase(),
+                        style = typography.labelSm.copy(
+                            fontFamily = SpaceGroteskFamily,
+                            color = if (meal.isSaved) colors.onSurfaceVariant else colors.primaryContainer,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
+                    )
                     Text(
                         text = "${meal.totalCalories.toInt()} kcal",
-                        style = typography.bodySm.copy(
-                            fontWeight = FontWeight.Bold,
+                        style = typography.titleMd.copy(
+                            fontFamily = SpaceGroteskFamily,
                             color = colors.onSurface
                         )
                     )
                 }
+
+                if (meal.isSaved) {
+                    Surface(
+                        color = colors.primaryContainer.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Done,
+                                contentDescription = "Saved",
+                                tint = colors.primaryContainer,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                "LOGGED",
+                                style = typography.labelSm.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primaryContainer,
+                                    fontSize = 9.sp
+                                )
+                            )
+                        }
+                    }
+                }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 meal.items.forEach { item ->
                     FoodItemRow(item)
                 }
             }
 
-            Divider(color = colors.outlineVariant.copy(alpha = 0.2f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MacroRow(
-                    protein = meal.totalProtein,
-                    carbs = meal.totalCarbs,
-                    fats = meal.totalFats
+            if (!meal.isSaved) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = onLog,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.primaryContainer,
+                        contentColor = colors.onPrimaryFixed
+                    ),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        "LOG",
+                        style = typography.labelSm.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = SpaceGroteskFamily
+                        )
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(colors.outlineVariant.copy(alpha = 0.1f))
                 )
             }
         }
@@ -163,30 +164,47 @@ fun FoodItemRow(item: UIFoodItem) {
     val colors = KineticTheme.colors
     val typography = KineticTheme.typography
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = item.name,
-            style = typography.bodySm,
-            color = colors.onSurface.copy(alpha = 0.8f),
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "${item.grams.toInt()}g",
-            style = typography.bodySm.copy(fontFamily = SpaceGroteskFamily),
-            color = colors.onSurfaceVariant
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = item.name,
+                style = typography.bodyMd,
+                color = colors.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${item.grams.toInt()}g",
+                style = typography.bodyMd,
+                color = colors.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            InlineMacro("P", "${item.protein.toInt()}g", colors.protein)
+            InlineMacro("C", "${item.carbs.toInt()}g", colors.carbs)
+            InlineMacro("F", "${item.fats.toInt()}g", colors.fats)
+            InlineMacro("K", "${item.calories.toInt()}")
+        }
     }
 }
 
 @Composable
 fun MacroRow(protein: Double, carbs: Double, fats: Double) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         MacroItem("P", protein, KineticTheme.colors.primaryContainer)
-        MacroItem("C", carbs, Color(0xFF4285F4))
-        MacroItem("F", fats, Color(0xFFFBBC04))
+        MacroItem("C", carbs, KineticTheme.colors.carbs)
+        MacroItem("F", fats, KineticTheme.colors.fats)
     }
 }
 
@@ -195,17 +213,26 @@ fun MacroItem(label: String, value: Double, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(6.dp)
-                .background(color, RoundedCornerShape(2.dp))
+                .size(4.dp)
+                .background(color, CircleShape)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = KineticTheme.typography.labelSm.copy(
+                fontSize = 10.sp,
+                color = KineticTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold
+            )
+        )
+        Spacer(modifier = Modifier.width(2.dp))
         Text(
             text = "${value.toInt()}g",
             style = KineticTheme.typography.labelSm.copy(
                 fontSize = 10.sp,
                 fontFamily = SpaceGroteskFamily
             ),
-            color = KineticTheme.colors.onSurfaceVariant
+            color = KineticTheme.colors.onSurface
         )
     }
 }

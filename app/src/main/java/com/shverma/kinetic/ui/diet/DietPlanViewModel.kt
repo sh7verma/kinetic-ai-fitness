@@ -16,6 +16,7 @@ import com.shverma.kinetic.data.repository.FoodResolver
 import com.shverma.kinetic.ui.aichat.UIFoodItem
 import com.shverma.kinetic.ui.aichat.UIMeal
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,5 +127,30 @@ class DietPlanViewModel @Inject constructor(
 
     fun onDateSelected(date: Long) {
         _selectedDate.value = date
+    }
+
+    fun logMeal(meal: UIMeal) {
+        viewModelScope.launch {
+            try {
+                meal.items.forEach { item ->
+                    // Resolve the food entity by name to get its ID
+                    val food = foodDao.findBestFood(item.name)
+                    if (food != null) {
+                        foodLogDao.insert(
+                            FoodLogEntity(
+                                foodId = food.foodId,
+                                grams = item.grams,
+                                timestamp = System.currentTimeMillis(),
+                                mealType = meal.mealType
+                            )
+                        )
+                    } else {
+                        Timber.w("Could not find food entity for logging: ${item.name}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to log meal from diet plan")
+            }
+        }
     }
 }

@@ -89,10 +89,10 @@ class AIChatViewModel @Inject constructor(
         _state.update { it.copy(chatType = type) }
     }
 
-    fun saveMeal(meal: UIMeal) {
+    fun saveMeal(originalMeal: UIMeal, updatedMeal: UIMeal) {
         viewModelScope.launch {
             try {
-                meal.items.forEach { item ->
+                updatedMeal.items.forEach { item ->
                     val food = foodDao.findBestFood(item.name)
                     if (food != null) {
                         foodLogDao.insert(
@@ -100,17 +100,17 @@ class AIChatViewModel @Inject constructor(
                                 foodId = food.foodId,
                                 grams = item.grams,
                                 timestamp = System.currentTimeMillis(),
-                                mealType = meal.mealType
+                                mealType = updatedMeal.mealType
                             )
                         )
                     }
                 }
-                // Update state to mark meal as saved
+                // Update state to mark meal as saved and update its values
                 _state.update { currentState ->
                     val updatedMessages = currentState.messages.map { message ->
-                        if (message.aiLogs != null && message.aiLogs.meals.contains(meal)) {
+                        if (message.aiLogs != null) {
                             val updatedMeals = message.aiLogs.meals.map { m ->
-                                if (m == meal) m.copy(isSaved = true) else m
+                                if (m == originalMeal) updatedMeal.copy(isSaved = true) else m
                             }
                             val allSaved = updatedMeals.all { it.isSaved }
                             message.copy(aiLogs = message.aiLogs.copy(meals = updatedMeals, isSaved = allSaved))
@@ -123,22 +123,6 @@ class AIChatViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to save meal")
             }
-        }
-    }
-
-    fun saveAllMeals(uiLog: UILog) {
-        viewModelScope.launch {
-            uiLog.meals.forEach { 
-                if (!it.isSaved) {
-                    saveMeal(it)
-                }
-            }
-        }
-    }
-
-    fun discardLog(message: ChatMessage) {
-        _state.update {
-            it.copy(messages = it.messages.filter { m -> m != message })
         }
     }
 

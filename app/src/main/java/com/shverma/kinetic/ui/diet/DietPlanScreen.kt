@@ -29,6 +29,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Egg
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.RiceBowl
@@ -41,6 +42,13 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,7 +69,10 @@ import com.shverma.kinetic.data.model.ai.AIDietPlan
 import com.shverma.kinetic.data.model.ai.AIMeal
 import com.shverma.kinetic.ui.aichat.UIMeal
 import com.shverma.kinetic.ui.components.KineticPrimaryButton
+import com.shverma.kinetic.ui.components.KineticSecondaryButton
 import com.shverma.kinetic.ui.components.KineticTopAppBar
+import com.shverma.kinetic.ui.components.EditMealBottomSheet
+import com.shverma.kinetic.ui.components.InlineMacro
 import com.shverma.kinetic.ui.fuel.MacroCard
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.ui.theme.LocalKineticTypography
@@ -73,6 +84,7 @@ import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DietPlanScreen(
     onBackClick: () -> Unit,
@@ -87,6 +99,9 @@ fun DietPlanScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val colors = KineticTheme.colors
     val typography = KineticTheme.typography
+    
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedMeal by remember { mutableStateOf<UIMeal?>(null) }
 
     Scaffold(
         topBar = { KineticTopAppBar(onBackClick = onBackClick) },
@@ -136,10 +151,33 @@ fun DietPlanScreen(
             }
 
             when (selectedTab) {
-                0 -> DietPlanTab(dietPlan, userProfile, onCreatePlanClick)
-                1 -> HistoryTab(selectedDate, foodLogs, onDateSelected = viewModel::onDateSelected)
+                0 -> DietPlanTab(
+                    dietPlan = dietPlan,
+                    userProfile = userProfile,
+                    onCreatePlanClick = onCreatePlanClick,
+                    onMealClick = { meal ->
+                        selectedMeal = meal
+                        showBottomSheet = true
+                    }
+                )
+                1 -> HistoryTab(
+                    selectedDate = selectedDate,
+                    foodLogs = foodLogs,
+                    onDateSelected = { viewModel.onDateSelected(it) }
+                )
             }
         }
+    }
+
+    if (showBottomSheet && selectedMeal != null) {
+        EditMealBottomSheet(
+            meal = selectedMeal!!,
+            onDismiss = { showBottomSheet = false },
+            onSave = { updatedMeal ->
+                viewModel.logMeal(updatedMeal)
+                showBottomSheet = false
+            }
+        )
     }
 }
 
@@ -486,7 +524,8 @@ fun DatePickerHorizontal(selectedDate: Long, onDateSelected: (Long) -> Unit) {
 fun DietPlanTab(
     dietPlan: DietPlanUi?,
     userProfile: UserProfileData?,
-    onCreatePlanClick: () -> Unit
+    onCreatePlanClick: () -> Unit,
+    onMealClick: (UIMeal) -> Unit
 ) {
     val colors = KineticTheme.colors
     val typography = KineticTheme.typography
@@ -518,23 +557,6 @@ fun DietPlanTab(
             }
         }
 
-        // Section header
-        item {
-            Column {
-                Text(
-                    text = "MEAL SCHEDULE",
-                    style = typography.titleMd.copy(fontWeight = FontWeight.ExtraBold),
-                    color = colors.onSurface
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Based on your ${dietPlan.goal.formatGoalName()} goal",
-                    style = typography.bodySm,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        }
-
         itemsIndexed(dietPlan.meals) { index, meal ->
             val accent = when (index % 4) {
                 0 -> colors.primary
@@ -542,7 +564,11 @@ fun DietPlanTab(
                 2 -> colors.tertiary
                 else -> Color(0xFF00E3FD)
             }
-            MealPlanCard(meal = meal, accentColor = accent)
+            MealPlanCard(
+                meal = meal,
+                accentColor = accent,
+                modifier = Modifier.clickable { onMealClick(meal) }
+            )
         }
     }
 }
@@ -719,25 +745,6 @@ fun MealPlanCard(
                 MacroStat("FAT", "${meal.totalFats.toInt()}g", colors.fats)
             }
         }
-    }
-}
-
-@Composable
-private fun InlineMacro(label: String, value: String, valueColor: Color = KineticTheme.colors.onSurface) {
-    val colors = KineticTheme.colors
-    val typography = KineticTheme.typography
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = label,
-            style = typography.labelSm.copy(fontWeight = FontWeight.Bold),
-            color = colors.onSurfaceVariant
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = value,
-            style = typography.labelSm,
-            color = valueColor
-        )
     }
 }
 

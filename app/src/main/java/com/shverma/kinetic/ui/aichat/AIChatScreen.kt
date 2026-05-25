@@ -1,9 +1,25 @@
 package com.shverma.kinetic.ui.aichat
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -12,22 +28,36 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.ui.aichat.components.LogFoodComponent
-import com.shverma.kinetic.ui.components.*
+import com.shverma.kinetic.ui.components.EditMealBottomSheet
 import com.shverma.kinetic.ui.theme.KineticTheme
 import kotlinx.coroutines.launch
 
@@ -41,7 +71,10 @@ fun AIChatScreen(
     val colors = KineticTheme.colors
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    
+
+    var showEditSheet by remember { mutableStateOf(false) }
+    var selectedMeal by remember { mutableStateOf<UIMeal?>(null) }
+
     val chatTypeOptions = listOf(
         ChatTypeOption(ChatType.LOG_MEAL, "Log Meal", Color(0xFF00BFAE)),
     )
@@ -98,9 +131,10 @@ fun AIChatScreen(
                     ChatBubble(
                         message = message,
                         colors = colors,
-                        onSaveMeal = { viewModel.saveMeal(it) },
-                        onSaveAll = { viewModel.saveAllMeals(it) },
-                        onDiscard = { viewModel.discardLog(it) }
+                        onLogMeal = { meal ->
+                            selectedMeal = meal
+                            showEditSheet = true
+                        }
                     )
                 }
 
@@ -121,6 +155,17 @@ fun AIChatScreen(
                 colors = colors
             )
         }
+
+        if (showEditSheet && selectedMeal != null) {
+            EditMealBottomSheet(
+                meal = selectedMeal!!,
+                onDismiss = { showEditSheet = false },
+                onSave = { updatedMeal ->
+                    viewModel.saveMeal(selectedMeal!!, updatedMeal)
+                    showEditSheet = false
+                }
+            )
+        }
     }
 }
 
@@ -128,28 +173,35 @@ fun AIChatScreen(
 fun ChatBubble(
     message: ChatMessage,
     colors: com.shverma.kinetic.ui.theme.KineticColors,
-    onSaveMeal: (UIMeal) -> Unit,
-    onSaveAll: (UILog) -> Unit,
-    onDiscard: (ChatMessage) -> Unit,
+    onLogMeal: (UIMeal) -> Unit,
 ) {
     val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
     val bgColor = if (message.isUser) colors.primaryContainer else colors.surfaceContainer
     val textColor = if (message.isUser) colors.onPrimary else colors.onSurface
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
+        val bubbleShape = RoundedCornerShape(
+            topStart = 16.dp,
+            topEnd = 16.dp,
+            bottomStart = if (message.isUser) 16.dp else 0.dp,
+            bottomEnd = if (message.isUser) 0.dp else 16.dp
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth(if (message.aiLogs != null) 0.95f else 0.85f)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (message.isUser) 16.dp else 0.dp,
-                        bottomEnd = if (message.isUser) 0.dp else 16.dp
-                    )
+                .clip(bubbleShape)
+                .then(
+                    if (message.aiLogs != null) {
+                        Modifier.border(
+                            1.dp,
+                            colors.primaryContainer.copy(alpha = 0.1f),
+                            bubbleShape
+                        )
+                    } else Modifier
                 )
-                .background(if (message.aiLogs != null) Color.Transparent else bgColor)
-                .padding(if (message.aiLogs != null) 0.dp else 12.dp)
+                .background(if (message.aiLogs != null) colors.surfaceContainerLow.copy(alpha = 0.4f) else bgColor)
+                .padding(if (message.aiLogs != null) 12.dp else 12.dp)
         ) {
             if (message.aiLogs == null) {
                 Text(
@@ -162,9 +214,7 @@ fun ChatBubble(
             message.aiLogs?.let { log ->
                 LogFoodComponent(
                     uiLog = log,
-                    onSaveMeal = onSaveMeal,
-                    onSaveAll = { onSaveAll(log) },
-                    onDiscard = { onDiscard(message) }
+                    onLogMeal = { onLogMeal(it) },
                 )
             }
         }
@@ -178,7 +228,14 @@ fun TypingBubble(colors: com.shverma.kinetic.ui.theme.KineticColors) {
         Column(
             modifier = Modifier
                 .wrapContentWidth()
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 16.dp))
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 16.dp
+                    )
+                )
                 .background(colors.surfaceContainer)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
@@ -194,7 +251,7 @@ fun TypingIndicator(
     spacing: Dp = 4.dp
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
-    
+
     val dot1Alpha by infiniteTransition.animateFloat(
         initialValue = 0.2f,
         targetValue = 1f,
@@ -336,7 +393,11 @@ fun ChatInput(
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = "Send", modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = "Send",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -344,7 +405,7 @@ fun ChatInput(
 }
 
 @Composable
-private fun borderStroke(colors: com.shverma.kinetic.ui.theme.KineticColors) = 
+private fun borderStroke(colors: com.shverma.kinetic.ui.theme.KineticColors) =
     androidx.compose.foundation.BorderStroke(1.dp, colors.onSurface.copy(alpha = 0.1f))
 
 data class ChatTypeOption(
