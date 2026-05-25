@@ -31,10 +31,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -116,6 +120,8 @@ fun LandingScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val showBottomBar = currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false &&
             currentDestination?.hasRoute<LandingRoutes.AIChat>() == false &&
             currentDestination?.hasRoute<LandingRoutes.DietPlan>() == false &&
@@ -123,6 +129,7 @@ fun LandingScreen() {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (showBottomBar) {
                 KineticBottomNavigation(
@@ -154,9 +161,6 @@ fun LandingScreen() {
                 PlanScreen(
                     onLogComplete = {
                         navController.navigate(LandingRoutes.LogExercise)
-                    },
-                    onAIChatClick = {
-
                     }
                 )
             }
@@ -165,11 +169,10 @@ fun LandingScreen() {
                     onAIChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     },
-                    onAISyncClick = {
-
-                    },
                     onAddMealClick = {
-
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Manual meal entry — coming soon!")
+                        }
                     },
                     onEnergyCardClick = {
                         navController.navigate(LandingRoutes.DietPlan)
@@ -179,8 +182,6 @@ fun LandingScreen() {
             composable<LandingRoutes.Stats> { StatsScreen() }
             composable<LandingRoutes.Coach> {
                 CoachScreen(
-                    onWorkoutChatClick = {
-                    },
                     onMealChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     }

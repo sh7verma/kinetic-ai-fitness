@@ -16,7 +16,6 @@ import com.shverma.kinetic.ui.theme.KineticTheme
 
 @Composable
 fun CoachScreen(
-    onWorkoutChatClick: () -> Unit = {},
     onMealChatClick: () -> Unit = {}
 ) {
     val colors = KineticTheme.colors
@@ -33,11 +32,6 @@ fun CoachScreen(
                 color = colors.onSurface
             )
             Spacer(modifier = Modifier.height(32.dp))
-            KineticPrimaryButton(
-                text = "Workout Chat",
-                onClick = onWorkoutChatClick
-            )
-            Spacer(modifier = Modifier.height(16.dp))
             KineticPrimaryButton(
                 text = "Nutrition Chat",
                 onClick = onMealChatClick

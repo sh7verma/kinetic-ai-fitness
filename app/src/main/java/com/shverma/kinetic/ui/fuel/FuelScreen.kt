@@ -1,6 +1,5 @@
 package com.shverma.kinetic.ui.fuel
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -56,7 +54,6 @@ import java.util.Calendar
 fun FuelScreen(
     viewModel: FuelViewModel = hiltViewModel(),
     onAIChatClick: () -> Unit = {},
-    onAISyncClick: () -> Unit = {},
     onAddMealClick: () -> Unit = {},
     onEnergyCardClick: () -> Unit = {}
 ) {
@@ -112,46 +109,11 @@ fun FuelScreen(
                         .fillMaxWidth()
                         .clickable { onEnergyCardClick() },
                     title = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // "DAILY ENERGY" label
-                            Text(
-                                text = "DAILY ENERGY",
-                                style = KineticTheme.typography.labelSm,
-                                color = colors.onSurfaceVariant
-                            )
-                            // AI Sync badge (pill with sparkles icon)
-                            Surface(
-                                modifier = Modifier.clickable { onAISyncClick() },
-                                color = colors.primaryContainer.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(100.dp),
-                                border = BorderStroke(
-                                    0.5.dp,
-                                    colors.primaryContainer.copy(alpha = 0.3f)
-                                ),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = "AI Sync",
-                                        tint = colors.primaryContainer,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Text(
-                                        text = "AI SYNC",
-                                        style = KineticTheme.typography.labelSm.copy(fontWeight = FontWeight.Bold),
-                                        color = colors.primaryContainer
-                                    )
-                                }
-                            }
-                        }
+                        Text(
+                            text = "DAILY ENERGY",
+                            style = KineticTheme.typography.labelSm,
+                            color = colors.onSurfaceVariant
+                        )
                     },
                     metric = {
                         Column {

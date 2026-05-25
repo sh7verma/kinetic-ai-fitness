@@ -5,10 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -34,7 +32,6 @@ import com.shverma.kinetic.ui.theme.KineticTheme
 @Composable
 fun PlanScreen(
     onLogComplete: () -> Unit = {},
-    onAIChatClick: () -> Unit = {},
     viewModel: PlanViewModel = hiltViewModel()
 ) {
     val colors = KineticTheme.colors
@@ -42,24 +39,7 @@ fun PlanScreen(
 
     Scaffold(
         containerColor = colors.background,
-        topBar = { KineticTopAppBar() },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAIChatClick,
-                containerColor = colors.primaryContainer,
-                contentColor = colors.onPrimary,
-                shape = CircleShape,
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = "AI Chat",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+        topBar = { KineticTopAppBar() }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
