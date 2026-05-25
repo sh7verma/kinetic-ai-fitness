@@ -1,6 +1,5 @@
 package com.shverma.kinetic.di
 
-import com.shverma.kinetic.data.network.ApiService
 import com.shverma.kinetic.data.network.OpenAIService
 import dagger.Module
 import dagger.Provides
@@ -18,8 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://jsonplaceholder.typicode.com/" // replace with your url
-
     @Provides
     @Singleton
     fun provideCacheOkHttpClient(): OkHttpClient =
@@ -31,20 +28,6 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BODY
             })
             .build()
-
-    @Provides
-    @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit =
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-    @Provides
-    @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService =
-        retrofit.create(ApiService::class.java)
 
     @Provides
     @Singleton
