@@ -8,12 +8,9 @@ An Android app that lets users log meals through natural language, with GPT-4o p
 
 ## Demo
 
-<!-- Add a GIF here: screen record the AI Chat → meal logged flow, ~15 seconds -->
-<!-- Suggested tool: Android Studio's built-in screen recorder, then convert with ffmpeg or ezgif.com -->
-
-| AI Meal Logging | Nutrition Dashboard | Diet Plan |
+| AI Meal Logging | Nutrition Dashboard | Diet History |
 |:-:|:-:|:-:|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* |
+| ![AI Chat](screenshots/ai_chat.png) | ![Fuel Dashboard](screenshots/fuel_dashboard.png) | ![Diet History](screenshots/diet_history.png) |
 
 ---
 
