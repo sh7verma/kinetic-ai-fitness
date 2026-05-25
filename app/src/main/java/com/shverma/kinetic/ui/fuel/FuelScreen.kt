@@ -54,7 +54,6 @@ import java.util.Calendar
 fun FuelScreen(
     viewModel: FuelViewModel = hiltViewModel(),
     onAIChatClick: () -> Unit = {},
-    onAddMealClick: () -> Unit = {},
     onEnergyCardClick: () -> Unit = {}
 ) {
     val colors = KineticTheme.colors
@@ -77,18 +76,6 @@ fun FuelScreen(
                     Icon(
                         imageVector = Icons.Default.SmartToy,
                         contentDescription = "AI Chat"
-                    )
-                }
-
-                FloatingActionButton(
-                    onClick = onAddMealClick,
-                    containerColor = colors.primaryContainer,
-                    contentColor = colors.onPrimary,
-                    shape = CircleShape
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Meal"
                     )
                 }
             }

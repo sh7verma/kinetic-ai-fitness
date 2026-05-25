@@ -8,6 +8,10 @@ An Android app that lets users log meals through natural language, with GPT-4o p
 
 ## Demo
 
+<img src="screenshots/demo.gif" width="320" alt="Kinetic demo — AI meal logging">
+
+*Typing a meal in natural language → GPT-4o returns calories, macros, and gram weights → instantly logged*
+
 | AI Meal Logging | Nutrition Dashboard | Diet History |
 |:-:|:-:|:-:|
 | ![AI Chat](screenshots/ai_chat.png) | ![Fuel Dashboard](screenshots/fuel_dashboard.png) | ![Diet History](screenshots/diet_history.png) |

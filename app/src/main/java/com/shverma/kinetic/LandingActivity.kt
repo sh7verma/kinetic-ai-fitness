@@ -166,11 +166,6 @@ fun LandingScreen() {
                     onAIChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     },
-                    onAddMealClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Manual meal entry — coming soon!")
-                        }
-                    },
                     onEnergyCardClick = {
                         navController.navigate(LandingRoutes.DietPlan)
                     }
