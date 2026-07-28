@@ -1,66 +1,40 @@
 package com.shverma.kinetic.ui.welcome
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
-import android.app.Activity
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.shverma.kinetic.R
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.shverma.kinetic.ui.theme.KineticColors
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shverma.kinetic.ui.theme.KineticShape
+import com.shverma.kinetic.ui.theme.KineticSpacing
 import com.shverma.kinetic.ui.theme.KineticTheme
-import com.shverma.kinetic.ui.theme.LexendFamily
-import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
 import com.shverma.kinetic.utils.findActivity
-import com.shverma.kinetic.ui.components.DotLoader
-
-// ─────────────────────────────────────────
-// WelcomeScreen — Kinetic Volt entry point
-// ─────────────────────────────────────────
 
 @Composable
 fun WelcomeScreen(
@@ -70,11 +44,9 @@ fun WelcomeScreen(
     viewModel: WelcomeViewModel = hiltViewModel(),
 ) {
     val colors = KineticTheme.colors
+    val typography = KineticTheme.typography
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
 
     LaunchedEffect(authState) {
         when (val state = authState) {
@@ -93,271 +65,100 @@ fun WelcomeScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // Layer 0 — Hero background image
-        Image(
-            painter = painterResource(R.drawable.bg_welcome),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        // Layer 1 — Top-to-bottom atmospheric overlay
+    AnimatedVisibility(visible = true, enter = fadeIn()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.00f to Color(0xCC0A0A0A),
-                            0.30f to Color(0x440A0A0A),
-                            0.55f to Color(0x660A0A0A),
-                            1.00f to Color(0xFF0A0A0A),
-                        ),
-                    ),
-                ),
-        )
-
-        // Layer 2 — Brand + value prop pinned to top
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .background(colors.background)
+                .padding(KineticSpacing.xxl),
         ) {
-            Spacer(Modifier.height(72.dp))
-
-            AnimatedVisibility(
-                visible = entered,
-                enter = fadeIn(tween(500)) +
-                        slideInVertically(tween(500, easing = FastOutSlowInEasing)) { -32 },
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(KineticSpacing.lg),
             ) {
-                BrandIdentity(colors = colors)
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            AnimatedVisibility(
-                visible = entered,
-                enter = fadeIn(tween(600, delayMillis = 100)) +
-                        slideInVertically(tween(600, delayMillis = 100, easing = FastOutSlowInEasing)) { 24 },
-            ) {
-                ValueProposition(colors = colors)
-            }
-
-            Spacer(Modifier.weight(1f))
-        }
-
-        // Layer 3 — Glassmorphism action hub pinned to bottom
-        AnimatedVisibility(
-            visible = entered,
-            enter = fadeIn(tween(500, delayMillis = 300)) +
-                    slideInVertically(tween(500, delayMillis = 300, easing = FastOutSlowInEasing)) { 80 },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
-            ActionHub(
-                colors = colors,
-                onGoogleSignIn = {
-                    context.findActivity()?.let {
-                        viewModel.signInWithGoogle(it)
-                    }
-                },
-                isLoading = authState is AuthState.Loading,
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────
-// BrandIdentity — "KINETIC VOLT" hero headline
-// ─────────────────────────────────────────
-
-@Composable
-private fun BrandIdentity(colors: KineticColors) {
-    val voltGlow = Color(0xFFCAFD00)
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        // Micro badge — app category
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(20.dp)
-                    .height(2.dp)
-                    .background(voltGlow, RoundedCornerShape(1.dp)),
-            )
-            Text(
-                text = "AI GYM COACH",
-                fontFamily = SpaceGroteskFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 10.sp,
-                letterSpacing = 3.sp,
-                color = colors.onSurfaceVariant,
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        // KINETIC — white, italic, large
-        Text(
-            text = "KINETIC",
-            fontFamily = LexendFamily,
-            fontWeight = FontWeight.Bold,
-            fontStyle = FontStyle.Italic,
-            fontSize = 58.sp,
-            lineHeight = 58.sp,
-            letterSpacing = (-1).sp,
-            color = Color.White,
-        )
-
-        // VOLT — neon lime with soft glow halo
-        Box {
-            // Glow layer — rendered behind via drawBehind blur sim
-            Text(
-                text = "VOLT",
-                fontFamily = LexendFamily,
-                fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
-                fontSize = 58.sp,
-                lineHeight = 58.sp,
-                letterSpacing = (-1).sp,
-                color = voltGlow.copy(alpha = 0.35f),
-                modifier = Modifier.drawBehind {
-                    // Simulate neon bloom with expanded semi-transparent draw
-                    drawRect(
-                        color = voltGlow.copy(alpha = 0.04f),
-                        topLeft = Offset(-24f, -8f),
-                        size = this.size.copy(
-                            width = this.size.width + 48f,
-                            height = this.size.height + 16f,
-                        ),
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "K",
+                        style = typography.titleLg,
+                        color = colors.onPrimary,
                     )
-                },
-            )
-            // Crisp volt text on top
-            Text(
-                text = "VOLT",
-                fontFamily = LexendFamily,
-                fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
-                fontSize = 58.sp,
-                lineHeight = 58.sp,
-                letterSpacing = (-1).sp,
-                color = voltGlow,
-            )
+                }
+
+                Text(
+                    text = "Kinetic",
+                    style = typography.displaySm,
+                    color = colors.onSurface,
+                )
+
+                Text(
+                    text = "Log your meals in plain English. Trust the numbers.",
+                    style = typography.bodyLg,
+                    color = colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(KineticSpacing.md),
+            ) {
+                ContinueWithGoogleButton(
+                    isLoading = authState is AuthState.Loading,
+                    onClick = {
+                        context.findActivity()?.let { viewModel.signInWithGoogle(it) }
+                    },
+                )
+
+                Text(
+                    text = "Estimates, not medical advice.",
+                    style = typography.bodySm,
+                    color = colors.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
-// ─────────────────────────────────────────
-// ValueProposition — tagline under brand
-// ─────────────────────────────────────────
-
 @Composable
-private fun ValueProposition(colors: KineticColors) {
-    Text(
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(color = Color.White)) {
-                append("Unlock peak ")
-            }
-            withStyle(SpanStyle(color = Color(0xFFCAFD00))) {
-                append("physiological potential")
-            }
-            withStyle(SpanStyle(color = Color.White)) {
-                append(" through AI-driven data harvesting\nand precision kinetic training.")
-            }
-        },
-        fontFamily = SpaceGroteskFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 22.sp,
-        color = colors.onSurface,
-    )
-}
-
-// ─────────────────────────────────────────
-// ActionHub — glassmorphism bottom container
-// ─────────────────────────────────────────
-
-@Composable
-private fun ActionHub(
-    colors: KineticColors,
-    onGoogleSignIn: () -> Unit,
+private fun ContinueWithGoogleButton(
+    onClick: () -> Unit,
     isLoading: Boolean,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = Color(0xE50E0E0E),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0x30FFFFFF), Color(0x08FFFFFF)),
-                ),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            )
-            .padding(horizontal = 28.dp, vertical = 32.dp),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Primary CTA — Google Login styled as Get Started
-            GetStartedButton(
-                text = "GET STARTED WITH GOOGLE",
-                isLoading = isLoading,
-                onClick = onGoogleSignIn,
-                modifier = Modifier.fillMaxWidth(),
-            )
+    val colors = KineticTheme.colors
+    val typography = KineticTheme.typography
 
-            Spacer(Modifier.height(4.dp))
-        }
-    }
-}
-
-// ─────────────────────────────────────────
-// GetStartedButton — solid volt, primary CTA
-// ─────────────────────────────────────────
-
-@Composable
-private fun GetStartedButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
-) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFFCAFD00))
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KineticShape.button))
+            .background(colors.surfaceContainerLowest)
+            .border(1.dp, colors.outlineVariant.copy(alpha = 0.09f), RoundedCornerShape(KineticShape.button))
             .clickable(
                 enabled = !isLoading,
-                indication = ripple(color = Color(0x33000000)),
+                indication = ripple(),
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(vertical = 16.dp),
     ) {
         if (isLoading) {
-            DotLoader(dotColor = Color(0xFF0E1A00))
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = colors.primary, strokeWidth = 2.dp)
         } else {
             Text(
-                text = buildAnnotatedString {
-                    append(text)
-                    withStyle(SpanStyle(letterSpacing = 4.sp)) { append("  ") }
-                    append("→")
-                },
-                fontFamily = SpaceGroteskFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 13.sp,
-                letterSpacing = 1.5.sp,
-                color = Color(0xFF0E1A00),
+                text = "G   Continue with Google",
+                style = typography.titleSm,
+                color = colors.onSurface,
             )
         }
     }

@@ -22,8 +22,6 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
     companion object {
         private val EMAIL_KEY = stringPreferencesKey("email")
         private val USER_PROFILE_DATA_KEY = stringPreferencesKey("user_profile_data")
-        private val CURRENT_DIET_PLAN_KEY = stringPreferencesKey("current_diet_plan")
-        private val CURRENT_WORKOUT_PLAN_KEY = stringPreferencesKey("current_workout_plan")
         private val LAST_FOOD_SYNC_KEY = stringPreferencesKey("last_food_sync")
     }
 
@@ -72,44 +70,6 @@ class DataStoreHelper @Inject constructor(@ApplicationContext private val contex
             preferences.clear()
         }
     }
-
-    suspend fun saveWorkoutPlan(plan: com.shverma.kinetic.data.model.WorkoutPlan) {
-        val jsonData = json.encodeToString(plan)
-        dataStore.edit { preferences ->
-            preferences[CURRENT_WORKOUT_PLAN_KEY] = jsonData
-        }
-    }
-
-    val workoutPlan: Flow<com.shverma.kinetic.data.model.WorkoutPlan?> =
-        dataStore.data.map { preferences ->
-            preferences[CURRENT_WORKOUT_PLAN_KEY]?.let { jsonData ->
-                try {
-                    json.decodeFromString<com.shverma.kinetic.data.model.WorkoutPlan>(jsonData)
-                } catch (e: Exception) {
-                    Log.e("DataStoreHelper", "Error decoding WorkoutPlan", e)
-                    null
-                }
-            }
-        }
-
-    suspend fun saveDietPlan(plan: com.shverma.kinetic.data.model.ai.AIDietPlan) {
-        val jsonData = json.encodeToString(plan)
-        dataStore.edit { preferences ->
-            preferences[CURRENT_DIET_PLAN_KEY] = jsonData
-        }
-    }
-
-    val dietPlan: Flow<com.shverma.kinetic.data.model.ai.AIDietPlan?> =
-        dataStore.data.map { preferences ->
-            preferences[CURRENT_DIET_PLAN_KEY]?.let { jsonData ->
-                try {
-                    json.decodeFromString<com.shverma.kinetic.data.model.ai.AIDietPlan>(jsonData)
-                } catch (e: Exception) {
-                    Log.e("DataStoreHelper", "Error decoding DietPlan", e)
-                    null
-                }
-            }
-        }
 
     suspend fun saveLastFoodSync(timestamp: Long) {
         dataStore.edit { preferences ->

@@ -5,16 +5,13 @@ import com.shverma.kinetic.BuildConfig
 import com.shverma.kinetic.data.model.FoodEntityAiItem
 import com.shverma.kinetic.data.model.FoodEntityAiResponse
 import com.shverma.kinetic.data.model.UserProfileData
-import com.shverma.kinetic.data.model.ai.AIDietPlanResponse
 import com.shverma.kinetic.data.model.ai.AIFoodItem
 import com.shverma.kinetic.data.model.ai.AILogResponse
 import com.shverma.kinetic.data.model.ai.AIResponse
 import com.shverma.kinetic.data.model.ai.NutritionStrategy
 import com.shverma.kinetic.data.model.ai.TargetCaloriesData
 import com.shverma.kinetic.data.repository.MacrosCalculator
-import com.shverma.kinetic.utils.Resource
 import com.shverma.kinetic.utils.safeAiCallWithContent
-import com.shverma.kinetic.utils.safeApiCall
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,50 +77,6 @@ class FoodAIService @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "AI batch failed: ${e.message}")
             fallback(items)
-        }
-    }
-
-
-    suspend fun getCreateDietPlan(
-        user: UserProfileData,
-        message: String
-    ): Resource<AIDietPlanResponse> {
-        return try {
-            val request = OpenAIRequest(
-                model = "gpt-4o-mini",
-                messages = listOf(
-                    OpenAIMessage(
-                        role = "system",
-                        content = AIPrompts.mealSystemPrompt2()
-                    ),
-                    OpenAIMessage(
-                        role = "user",
-                        content = buildUserContext(
-                            chatType = ChatType.MEALS,
-                            user = user,
-                            message = message,
-                            currentMealPlan = "",
-                            weeklyMeals = ""
-                        )
-                    )
-                ),
-                maxCompletionTokens = 600
-            )
-
-            val parsed = safeAiCallWithContent(
-                apiCall = {
-                    openAIService.getCreateDietPlan(
-                        auth = "Bearer ${BuildConfig.OPENAI_API_KEY}",
-                        request = request
-                    )
-                },
-                transform = { cleaned ->
-                    json.decodeFromString<AIDietPlanResponse>(cleaned)
-                }
-            )
-            Resource.Success(parsed)
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error")
         }
     }
 

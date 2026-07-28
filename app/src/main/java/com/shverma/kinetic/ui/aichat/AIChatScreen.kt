@@ -6,80 +6,67 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.ui.aichat.components.LogFoodComponent
-import com.shverma.kinetic.ui.components.EditMealBottomSheet
+import com.shverma.kinetic.ui.theme.KineticShape
+import com.shverma.kinetic.ui.theme.KineticSpacing
 import com.shverma.kinetic.ui.theme.KineticTheme
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val EXAMPLE_PROMPTS = listOf(
+    "2 eggs and a roti",
+    "chicken curry with rice, medium bowl",
+)
+
 @Composable
 fun AIChatScreen(
     viewModel: AIChatViewModel = hiltViewModel(),
-    onBackClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val colors = KineticTheme.colors
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    var showEditSheet by remember { mutableStateOf(false) }
-    var selectedMeal by remember { mutableStateOf<UIMeal?>(null) }
-
-    val chatTypeOptions = listOf(
-        ChatTypeOption(ChatType.LOG_MEAL, "Log Meal", Color(0xFF00BFAE)),
-    )
-
-    // Scroll to bottom when messages change or typing starts
     LaunchedEffect(state.messages.size, state.isTyping) {
         if (state.messages.isNotEmpty() || state.isTyping) {
             coroutineScope.launch {
@@ -92,55 +79,40 @@ fun AIChatScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("AI Coach", style = KineticTheme.typography.titleMd)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.background,
-                    titleContentColor = colors.onSurface,
-                    navigationIconContentColor = colors.onSurface
-                )
-            )
-        },
-        containerColor = colors.background
+        containerColor = colors.background,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                state = listState,
-                reverseLayout = false,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                items(state.messages) { message ->
-                    ChatBubble(
-                        message = message,
-                        colors = colors,
-                        onLogMeal = { meal ->
-                            selectedMeal = meal
-                            showEditSheet = true
-                        }
-                    )
-                }
+            Text(
+                text = "Log a meal",
+                style = KineticTheme.typography.titleLg,
+                color = colors.onSurface,
+                modifier = Modifier.padding(horizontal = KineticSpacing.lg, vertical = KineticSpacing.md),
+            )
 
-                if (state.isTyping) {
-                    item {
-                        TypingBubble(colors = colors)
+            if (state.messages.isEmpty() && !state.isTyping) {
+                EmptyState(
+                    modifier = Modifier.weight(1f),
+                    onExampleClick = viewModel::onInputChange,
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = KineticSpacing.lg),
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(KineticSpacing.lg),
+                    contentPadding = PaddingValues(vertical = KineticSpacing.md)
+                ) {
+                    items(state.messages) { message ->
+                        ChatBubble(message = message, onSaveMeal = viewModel::saveMeal)
+                    }
+
+                    if (state.isTyping) {
+                        item { TypingBubble() }
                     }
                 }
             }
@@ -149,103 +121,112 @@ fun AIChatScreen(
                 text = state.inputText,
                 onTextChange = viewModel::onInputChange,
                 onSend = viewModel::sendMessage,
-                chatTypes = chatTypeOptions,
-                selectedType = state.chatType,
-                onTypeClick = viewModel::onChatTypeChange,
-                colors = colors
-            )
-        }
-
-        if (showEditSheet && selectedMeal != null) {
-            EditMealBottomSheet(
-                meal = selectedMeal!!,
-                onDismiss = { showEditSheet = false },
-                onSave = { updatedMeal ->
-                    viewModel.saveMeal(selectedMeal!!, updatedMeal)
-                    showEditSheet = false
-                }
             )
         }
     }
 }
 
 @Composable
-fun ChatBubble(
-    message: ChatMessage,
-    colors: com.shverma.kinetic.ui.theme.KineticColors,
-    onLogMeal: (UIMeal) -> Unit,
+private fun EmptyState(
+    onExampleClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val bgColor = if (message.isUser) colors.primaryContainer else colors.surfaceContainer
-    val textColor = if (message.isUser) colors.onPrimary else colors.onSurface
+    val colors = KineticTheme.colors
+    val typography = KineticTheme.typography
 
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
-        val bubbleShape = RoundedCornerShape(
-            topStart = 16.dp,
-            topEnd = 16.dp,
-            bottomStart = if (message.isUser) 16.dp else 0.dp,
-            bottomEnd = if (message.isUser) 0.dp else 16.dp
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = KineticSpacing.xxl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(KineticShape.card))
+                .background(colors.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.Chat,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Spacer(Modifier.size(KineticSpacing.lg))
+        Text(text = "Describe what you ate", style = typography.titleLg, color = colors.onSurface)
+        Spacer(Modifier.size(KineticSpacing.sm))
+        Text(
+            text = "Plain English — portions, cooking method, anything you'd tell a friend.",
+            style = typography.bodyMd,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(if (message.aiLogs != null) 0.95f else 0.85f)
-                .clip(bubbleShape)
-                .then(
-                    if (message.aiLogs != null) {
-                        Modifier.border(
-                            1.dp,
-                            colors.primaryContainer.copy(alpha = 0.1f),
-                            bubbleShape
-                        )
-                    } else Modifier
-                )
-                .background(if (message.aiLogs != null) colors.surfaceContainerLow.copy(alpha = 0.4f) else bgColor)
-                .padding(if (message.aiLogs != null) 12.dp else 12.dp)
-        ) {
-            if (message.aiLogs == null) {
+        Spacer(Modifier.size(KineticSpacing.xl))
+        EXAMPLE_PROMPTS.forEach { example ->
+            Surface(
+                onClick = { onExampleClick(example) },
+                color = colors.surfaceContainer,
+                shape = RoundedCornerShape(KineticShape.pill),
+                modifier = Modifier.padding(bottom = KineticSpacing.sm),
+            ) {
                 Text(
-                    text = message.text ?: "",
-                    style = KineticTheme.typography.bodyMd,
-                    color = textColor
-                )
-            }
-
-            message.aiLogs?.let { log ->
-                LogFoodComponent(
-                    uiLog = log,
-                    onLogMeal = { onLogMeal(it) },
+                    text = "\"$example\"",
+                    style = typography.bodyMd,
+                    color = colors.onSurface,
+                    modifier = Modifier.padding(horizontal = KineticSpacing.lg, vertical = KineticSpacing.sm),
                 )
             }
         }
     }
 }
 
-
 @Composable
-fun TypingBubble(colors: com.shverma.kinetic.ui.theme.KineticColors) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-        Column(
-            modifier = Modifier
-                .wrapContentWidth()
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 0.dp,
-                        bottomEnd = 16.dp
-                    )
-                )
-                .background(colors.surfaceContainer)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            TypingIndicator(dotColor = colors.onSurface.copy(alpha = 0.6f))
-        }
+private fun ChatBubble(
+    message: ChatMessage,
+    onSaveMeal: (UIMeal, UIMeal) -> Unit,
+) {
+    val colors = KineticTheme.colors
+
+    if (message.aiLogs != null) {
+        LogFoodComponent(uiLog = message.aiLogs, onSaveMeal = onSaveMeal, modifier = Modifier.fillMaxWidth())
+        return
+    }
+
+    val bgColor = if (message.isUser) colors.primary.copy(alpha = 0.08f) else colors.surfaceContainer
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KineticShape.card))
+            .background(bgColor)
+            .padding(KineticSpacing.md),
+    ) {
+        Text(
+            text = message.text ?: "",
+            style = KineticTheme.typography.bodyMd,
+            color = colors.onSurface,
+        )
     }
 }
 
 @Composable
-fun TypingIndicator(
+private fun TypingBubble() {
+    val colors = KineticTheme.colors
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KineticShape.card))
+            .background(colors.surfaceContainer)
+            .padding(horizontal = KineticSpacing.lg, vertical = KineticSpacing.md),
+    ) {
+        TypingIndicator(dotColor = colors.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun TypingIndicator(
     dotColor: Color,
     dotSize: Dp = 6.dp,
     spacing: Dp = 4.dp
@@ -317,99 +298,54 @@ private fun Dot(color: Color, size: Dp) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatInput(
+private fun ChatInput(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    chatTypes: List<ChatTypeOption> = emptyList(),
-    selectedType: ChatType? = null,
-    onTypeClick: (ChatType) -> Unit = {},
-    colors: com.shverma.kinetic.ui.theme.KineticColors
 ) {
+    val colors = KineticTheme.colors
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding(),
         color = colors.background,
-        tonalElevation = 8.dp
     ) {
-        Column {
-            if (chatTypes.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    chatTypes.forEach { option ->
-                        val isSelected = option.type == selectedType
-                        Surface(
-                            onClick = { onTypeClick(option.type) },
-                            color = if (isSelected) option.color else colors.surfaceContainer,
-                            shape = CircleShape,
-                            border = if (isSelected) null else borderStroke(colors)
-                        ) {
-                            Text(
-                                text = option.label,
-                                style = KineticTheme.typography.labelSm,
-                                color = if (isSelected) Color.Black else colors.onSurface,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .heightIn(min = 56.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .padding(KineticSpacing.lg)
+                .heightIn(min = 56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)
+        ) {
+            TextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("e.g. 2 rotis and dal, side bowl", color = colors.onSurfaceVariant) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = colors.surfaceContainer,
+                    unfocusedContainerColor = colors.surfaceContainer,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = colors.onSurface,
+                    unfocusedTextColor = colors.onSurface
+                ),
+                shape = RoundedCornerShape(KineticShape.pill)
+            )
+            FloatingActionButton(
+                onClick = onSend,
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary,
+                shape = RoundedCornerShape(KineticShape.button),
+                modifier = Modifier.size(48.dp)
             ) {
-                TextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Ask anything...", color = colors.onSurfaceVariant) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = colors.surfaceContainer,
-                        unfocusedContainerColor = colors.surfaceContainer,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = colors.onSurface,
-                        unfocusedTextColor = colors.onSurface
-                    ),
-                    shape = RoundedCornerShape(24.dp)
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    modifier = Modifier.size(20.dp)
                 )
-                FloatingActionButton(
-                    onClick = onSend,
-                    containerColor = colors.primaryContainer,
-                    contentColor = colors.onPrimary,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Send,
-                        contentDescription = "Send",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
         }
     }
 }
-
-@Composable
-private fun borderStroke(colors: com.shverma.kinetic.ui.theme.KineticColors) =
-    androidx.compose.foundation.BorderStroke(1.dp, colors.onSurface.copy(alpha = 0.1f))
-
-data class ChatTypeOption(
-    val type: ChatType,
-    val label: String,
-    val color: Color
-)

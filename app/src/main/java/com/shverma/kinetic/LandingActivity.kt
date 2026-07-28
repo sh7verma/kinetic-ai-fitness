@@ -22,11 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.EventNote
-import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Sports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -46,9 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -58,16 +54,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.shverma.kinetic.data.network.ChatType
 import com.shverma.kinetic.ui.aichat.AIChatScreen
-import com.shverma.kinetic.ui.coach.CoachScreen
-import com.shverma.kinetic.ui.diet.CreateDietPlanScreen
-import com.shverma.kinetic.ui.diet.DietPlanScreen
 import com.shverma.kinetic.ui.fuel.FuelScreen
-import com.shverma.kinetic.ui.logexercise.LogExerciseScreen
-import com.shverma.kinetic.ui.plan.PlanScreen
 import com.shverma.kinetic.ui.profile.ProfileScreen
-import com.shverma.kinetic.ui.stats.StatsScreen
 import com.shverma.kinetic.ui.theme.AppTheme
-import com.shverma.kinetic.ui.theme.SpaceGroteskFamily
+import com.shverma.kinetic.ui.theme.KineticTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -87,31 +77,13 @@ class LandingActivity : ComponentActivity() {
 
 object LandingRoutes {
     @Serializable
-    object Plan
-
-    @Serializable
     object Fuel
-
-    @Serializable
-    object Stats
-
-    @Serializable
-    object Coach
 
     @Serializable
     object Profile
 
     @Serializable
-    object LogExercise
-
-    @Serializable
     data class AIChat(val chatType: String)
-
-    @Serializable
-    object DietPlan
-
-    @Serializable
-    object CreateDietPlan
 }
 
 @Composable
@@ -121,60 +93,37 @@ fun LandingScreen() {
     val currentDestination = navBackStackEntry?.destination
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val showBottomBar =
-        currentDestination?.hasRoute<LandingRoutes.LogExercise>() == false && !currentDestination.hasRoute<LandingRoutes.AIChat>() && !currentDestination.hasRoute<LandingRoutes.DietPlan>() && !currentDestination.hasRoute<LandingRoutes.CreateDietPlan>()
+    val colors = KineticTheme.colors
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (showBottomBar) {
-                KineticBottomNavigation(
-                    currentDestination = currentDestination,
-                    onTabSelected = { route ->
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
+            KineticBottomNavigation(
+                currentDestination = currentDestination,
+                onTabSelected = { route ->
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
                         }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                )
-            }
+                }
+            )
         },
-        containerColor = Color(0xFF0E0E0E) // Pure Obsidian Black
+        containerColor = colors.background
     ) { padding ->
-        val startDestination = if (BuildConfig.IS_DEBUG) LandingRoutes.Plan else LandingRoutes.Fuel
-
         NavHost(
             navController = navController,
-            startDestination = startDestination,
+            startDestination = LandingRoutes.Fuel,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp) // Avoid extra padding if screens have their own Scaffold
+                .padding(bottom = padding.calculateBottomPadding())
         ) {
-            composable<LandingRoutes.Plan> {
-                PlanScreen(
-                    onLogComplete = {
-                        navController.navigate(LandingRoutes.LogExercise)
-                    }
-                )
-            }
             composable<LandingRoutes.Fuel> {
                 FuelScreen(
                     onAIChatClick = {
-                        navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
-                    },
-                    onEnergyCardClick = {
-                        navController.navigate(LandingRoutes.DietPlan)
-                    }
-                )
-            }
-            composable<LandingRoutes.Stats> { StatsScreen() }
-            composable<LandingRoutes.Coach> {
-                CoachScreen(
-                    onMealChatClick = {
                         navController.navigate(LandingRoutes.AIChat(chatType = ChatType.MEALS.name))
                     }
                 )
@@ -191,28 +140,8 @@ fun LandingScreen() {
                     }
                 )
             }
-            composable<LandingRoutes.LogExercise> {
-                LogExerciseScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
             composable<LandingRoutes.AIChat> {
-                AIChatScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-            composable<LandingRoutes.DietPlan> {
-                DietPlanScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onCreatePlanClick = {
-                        navController.navigate(LandingRoutes.CreateDietPlan)
-                    }
-                )
-            }
-            composable<LandingRoutes.CreateDietPlan> {
-                CreateDietPlanScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
+                AIChatScreen()
             }
         }
     }
@@ -223,31 +152,23 @@ fun KineticBottomNavigation(
     currentDestination: NavDestination?,
     onTabSelected: (Any) -> Unit
 ) {
+    val colors = KineticTheme.colors
     val tabs = remember {
-        val allTabs = listOf(
-            NavigationItem("Plan", Icons.AutoMirrored.Outlined.EventNote, LandingRoutes.Plan),
+        listOf(
+            NavigationItem("Log", Icons.AutoMirrored.Outlined.Chat, LandingRoutes.AIChat(chatType = ChatType.MEALS.name)),
             NavigationItem("Fuel", Icons.Outlined.LocalFireDepartment, LandingRoutes.Fuel),
-            NavigationItem("Stats", Icons.Outlined.BarChart, LandingRoutes.Stats),
-            NavigationItem("Coach", Icons.Outlined.Sports, LandingRoutes.Coach),
-            NavigationItem("Profile", Icons.Outlined.Person, LandingRoutes.Profile)
+            NavigationItem("Profile", Icons.Outlined.Person, LandingRoutes.Profile),
         )
-        if (BuildConfig.IS_DEBUG) {
-            allTabs
-        } else {
-            allTabs.filter { it.route == LandingRoutes.Fuel || it.route == LandingRoutes.Profile }
-        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-            .background(Color(0xE6131313)) // bg-[#131313]/90
+            .background(colors.surfaceContainer)
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                color = colors.outlineVariant.copy(alpha = 0.09f),
             )
     ) {
         Row(
@@ -277,9 +198,10 @@ fun KineticNavigationItem(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isPressed) 0.9f else 1f, label = "scale")
+    val colors = KineticTheme.colors
 
-    val activeColor = Color(0xFFCCFF00)
-    val inactiveColor = Color(0xFF737373).copy(alpha = 0.6f)
+    val activeColor = colors.primary
+    val inactiveColor = colors.onSurfaceVariant
 
     val contentColor = if (isActive) activeColor else inactiveColor
 
@@ -320,12 +242,7 @@ fun KineticNavigationItem(
                 )
                 Text(
                     text = item.label.uppercase(),
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontFamily = SpaceGroteskFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 8.sp,
-                        letterSpacing = 2.sp // tracking-widest
-                    ),
+                    style = KineticTheme.typography.labelSm,
                     color = contentColor
                 )
             }

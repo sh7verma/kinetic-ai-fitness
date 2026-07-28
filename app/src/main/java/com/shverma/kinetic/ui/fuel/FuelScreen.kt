@@ -3,6 +3,7 @@ package com.shverma.kinetic.ui.fuel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -46,6 +48,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.shverma.kinetic.ui.components.KineticDataCard
 import com.shverma.kinetic.ui.components.KineticProgressBar
 import com.shverma.kinetic.ui.components.KineticTopAppBar
+import com.shverma.kinetic.ui.theme.KineticShape
+import com.shverma.kinetic.ui.theme.KineticSpacing
 import com.shverma.kinetic.ui.theme.KineticTheme
 import com.shverma.kinetic.utils.formatCalories
 import java.util.Calendar
@@ -252,6 +256,48 @@ fun FuelScreen(
                 }
             }
 
+            // 4b. QUICK REPEAT
+            if (state.quickRepeats.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+                        Text(
+                            text = "Quick repeat",
+                            style = KineticTheme.typography.labelLg,
+                            color = colors.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)
+                        ) {
+                            state.quickRepeats.forEach { meal ->
+                                QuickRepeatChip(
+                                    meal = meal,
+                                    onClick = { viewModel.repeatMeal(meal) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4c. TODAY'S MEALS
+            if (state.todaysMeals.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(KineticSpacing.xs)) {
+                        Text(
+                            text = "Today's meals",
+                            style = KineticTheme.typography.labelLg,
+                            color = colors.onSurfaceVariant
+                        )
+                        state.todaysMeals.forEach { meal ->
+                            TodaysMealRow(meal = meal)
+                        }
+                    }
+                }
+            }
+
             // 5. WEEKLY TREND SECTION
             item {
                 // Weekly Trend Chart
@@ -450,96 +496,57 @@ fun MacroCard(
 }
 
 @Composable
-fun MiniCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    value: String,
-    label: String,
-    iconColor: Color
-) {
-    val typography = KineticTheme.typography
+fun QuickRepeatChip(meal: LoggedMealGroup, onClick: () -> Unit) {
     val colors = KineticTheme.colors
+    val typography = KineticTheme.typography
 
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(KineticShape.pill))
             .background(colors.surfaceContainerLow)
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
-            .padding(12.dp),
+            .border(1.dp, colors.outlineVariant.copy(alpha = 0.09f), RoundedCornerShape(KineticShape.pill))
+            .clickable(onClick = onClick)
+            .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(KineticSpacing.xs)
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(iconColor.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Column {
-            Text(
-                text = value,
-                style = typography.titleMd.copy(fontWeight = FontWeight.Bold),
-                color = colors.onSurface
-            )
-            Text(
-                text = label,
-                style = typography.labelSm,
-                color = colors.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = null,
+            tint = colors.primary,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(text = meal.displayName, style = typography.bodySm, color = colors.onSurface)
     }
 }
 
-
 @Composable
-fun FuelItemRow(item: FuelItem, voltColor: Color) {
+fun TodaysMealRow(meal: LoggedMealGroup) {
     val typography = KineticTheme.typography
     val colors = KineticTheme.colors
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = KineticSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(colors.surfaceContainerHigh)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.title,
-                style = typography.labelLg.copy(fontWeight = FontWeight.Bold),
+                text = meal.displayName,
+                style = typography.bodyMd,
                 color = colors.onSurface
             )
             Text(
-                text = "${item.category} • ${item.time}",
-                style = typography.labelSm,
+                text = meal.time,
+                style = typography.bodySm,
                 color = colors.onSurfaceVariant
             )
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = "${item.calories.formatCalories()} kcal",
-                style = typography.labelLg.copy(fontWeight = FontWeight.Bold),
-                color = colors.onSurface
-            )
-            Text(
-                text = "AI Verified",
-                style = typography.labelSm.copy(fontWeight = FontWeight.Bold),
-                color = voltColor
-            )
-        }
+        Text(
+            text = "${meal.totalCalories.formatCalories()} kcal",
+            style = typography.bodyMd,
+            color = colors.onSurfaceVariant
+        )
     }
 }

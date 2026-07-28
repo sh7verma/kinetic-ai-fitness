@@ -6,6 +6,7 @@ import com.shverma.kinetic.data.auth.GoogleAuthRepository
 import com.shverma.kinetic.data.model.ai.NutritionStrategy
 import com.shverma.kinetic.data.model.ai.TargetCaloriesData
 import com.shverma.kinetic.data.model.UserProfileData
+import com.shverma.kinetic.data.repository.MacrosCalculator
 import com.shverma.kinetic.data.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,25 +19,18 @@ import javax.inject.Inject
 data class OnboardingUiState(
     val currentStep: OnboardingStep = OnboardingStep.BIOMETRICS,
     val totalSteps: Int = OnboardingStep.totalSteps,
-    // Biometrics
+    // Biometrics — feeds the Mifflin-St Jeor BMR calculation directly
     val age: Double = 28.0,
     val weight: Double = 75.0,
     val weightUnit: String = "KG",
     val height: Double = 175.0,
     val heightUnit: String = "CM",
     val sex: String = "MALE",
-    // Workout Setup
-    val workoutGoal: String = "FAT LOSS",
-    val commitmentDays: Double = 4.0,
-    val equipment: String = "FULL GYM",
-    // Meal Setup Data
-    val selectedDietTypes: List<String> = listOf("BALANCED"),
-    val selectedAllergies: List<String> = emptyList(),
-    // Activity Level Data
+    // Goal & Activity — goal feeds the AI strategy prompt, activity feeds the
+    // TDEE multiplier directly (see MacrosCalculator.calculate)
+    val workoutGoal: String = "Maintain",
     val selectedActivityLevel: String = "ACTIVE",
-    // Cuisine Preference Data
-    val selectedCuisines: List<String> = listOf("MEDITERRANEAN"),
-    // AI calculated targets
+    // AI-calculated targets, shown on the Results step
     val targetCaloriesData: TargetCaloriesData? = null,
     val nutritionStrategy: NutritionStrategy? = null,
     val isLoading: Boolean = false
@@ -70,12 +64,7 @@ class OnboardingViewModel @Inject constructor(
                             heightUnit = savedData.heightUnit,
                             sex = savedData.sex,
                             workoutGoal = savedData.workoutGoal,
-                            commitmentDays = savedData.commitmentDays,
-                            equipment = savedData.equipment,
-                            selectedDietTypes = savedData.dietTypes,
-                            selectedAllergies = savedData.allergies,
                             selectedActivityLevel = savedData.activityLevel,
-                            selectedCuisines = savedData.cuisines,
                             targetCaloriesData = savedData.targetCaloriesData,
                             nutritionStrategy = savedData.nutritionStrategy,
                             currentStep = if (savedData.isCompleted) OnboardingStep.entries.last() else state.currentStep
@@ -103,12 +92,7 @@ class OnboardingViewModel @Inject constructor(
                     heightUnit = state.heightUnit,
                     sex = state.sex,
                     workoutGoal = state.workoutGoal,
-                    commitmentDays = state.commitmentDays,
-                    equipment = state.equipment,
-                    dietTypes = state.selectedDietTypes,
-                    allergies = state.selectedAllergies,
                     activityLevel = state.selectedActivityLevel,
-                    cuisines = state.selectedCuisines,
                     targetCaloriesData = state.targetCaloriesData,
                     nutritionStrategy = state.nutritionStrategy,
                     isCompleted = state.currentStep == OnboardingStep.entries.last()
@@ -116,21 +100,20 @@ class OnboardingViewModel @Inject constructor(
 
                 val finalUser = if (initialData.isCompleted && initialData.targetCaloriesData == null) {
                     val result = userProfileRepository.getInitialTargetCalories(initialData)
-                    if (result != null) {
+                    val updatedData = if (result != null) {
                         val (aiTargets, strategy) = result
-                        val updatedData = initialData.copy(
-                            targetCaloriesData = aiTargets,
-                            nutritionStrategy = strategy
-                        )
-                        // Update UI state with AI targets
-                        _uiState.update { it.copy(
+                        initialData.copy(targetCaloriesData = aiTargets, nutritionStrategy = strategy)
+                    } else {
+                        // AI call failed — fall back rather than leaving the user stuck with no targets.
+                        initialData.copy(targetCaloriesData = MacrosCalculator.fallback(initialData))
+                    }
+                    _uiState.update {
+                        it.copy(
                             targetCaloriesData = updatedData.targetCaloriesData,
                             nutritionStrategy = updatedData.nutritionStrategy
-                        ) }
-                        updatedData
-                    } else {
-                        initialData
+                        )
                     }
+                    updatedData
                 } else {
                     initialData
                 }
@@ -153,20 +136,6 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun previousStep() {
-        val currentStepNumber = _uiState.value.currentStep.stepNumber
-        if (currentStepNumber > 1) {
-            val prevStep = OnboardingStep.fromStepNumber(currentStepNumber - 1)
-            _uiState.update { it.copy(currentStep = prevStep) }
-        }
-    }
-
-    fun skipOnboarding(onComplete: (() -> Unit)? = null) {
-        // Handle skip logic - might navigate to landing activity
-        _uiState.update { it.copy(currentStep = OnboardingStep.entries.last()) }
-        saveUserProfileData(onComplete = onComplete)
-    }
-
     // Biometrics Actions
     fun updateAge(age: Double) {
         _uiState.update { it.copy(age = age) }
@@ -184,62 +153,12 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(sex = sex) }
     }
 
-    // Workout Actions
+    // Goal & Activity Actions
     fun updateWorkoutGoal(goal: String) {
         _uiState.update { it.copy(workoutGoal = goal) }
     }
 
-    fun updateCommitmentDays(days: Double) {
-        _uiState.update { it.copy(commitmentDays = days) }
-    }
-
-    fun updateEquipment(equipment: String) {
-        _uiState.update { it.copy(equipment = equipment) }
-    }
-
-    // Meal Setup Actions
-    fun toggleDietType(key: String) {
-        _uiState.update { state ->
-            val currentTypes = state.selectedDietTypes
-            val newTypes = if (key == "BALANCED") {
-                listOf("BALANCED")
-            } else {
-                val mutable = currentTypes.toMutableSet().also {
-                    it.remove("BALANCED")
-                    if (it.contains(key)) it.remove(key) else it.add(key)
-                }
-                if (mutable.isEmpty()) listOf("BALANCED") else mutable.toList()
-            }
-            state.copy(selectedDietTypes = newTypes)
-        }
-    }
-
-    fun toggleAllergy(allergy: String) {
-        _uiState.update { state ->
-            val currentAllergies = state.selectedAllergies
-            val newAllergies = if (currentAllergies.contains(allergy)) {
-                currentAllergies.filter { it != allergy }
-            } else {
-                currentAllergies + allergy
-            }
-            state.copy(selectedAllergies = newAllergies)
-        }
-    }
-
-    // Activity & Cuisine Actions
     fun updateActivityLevel(level: String) {
         _uiState.update { it.copy(selectedActivityLevel = level) }
-    }
-
-    fun toggleCuisine(cuisine: String) {
-        _uiState.update { state ->
-            val currentCuisines = state.selectedCuisines
-            val newCuisines = if (currentCuisines.contains(cuisine)) {
-                currentCuisines.filter { it != cuisine }
-            } else {
-                currentCuisines + cuisine
-            }
-            state.copy(selectedCuisines = newCuisines)
-        }
     }
 }

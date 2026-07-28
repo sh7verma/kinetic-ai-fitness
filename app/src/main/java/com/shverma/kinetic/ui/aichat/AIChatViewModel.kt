@@ -41,6 +41,8 @@ data class UIFoodItem(
     val protein: Double,
     val carbs: Double,
     val fats: Double,
+    val confidence: Double = 0.0,
+    val assumed: String? = null,
 )
 
 data class ChatMessage(
@@ -66,20 +68,6 @@ class AIChatViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(AIChatState())
     val state: StateFlow<AIChatState> = _state.asStateFlow()
-
-    init {
-        updateWelcomeMessage()
-    }
-
-    private fun updateWelcomeMessage() {
-        val welcomeMessage =
-            "Hello! I'm your Kinetic Nutrition coach. How can I help you with your meals today?"
-        _state.update {
-            it.copy(
-                messages = it.messages + ChatMessage(welcomeMessage, false)
-            )
-        }
-    }
 
     fun onInputChange(text: String) {
         _state.update { it.copy(inputText = text) }

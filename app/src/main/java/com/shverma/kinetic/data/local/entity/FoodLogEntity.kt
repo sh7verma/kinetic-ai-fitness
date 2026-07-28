@@ -2,7 +2,6 @@ package com.shverma.kinetic.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.shverma.kinetic.data.model.ai.AIDietPlan
 import com.shverma.kinetic.data.model.ai.AILogResponse
 import com.shverma.kinetic.data.model.ai.displayMealType
 import com.shverma.kinetic.data.model.ai.safeGrams
@@ -42,39 +41,6 @@ data class FoodLogWithFood(
     )
     val food: FoodEntity
 )
-
-
-suspend fun AIDietPlan.toFoodLogs(
-    dietPlanId: Long,
-    foodResolver: FoodResolver
-): List<FoodLogEntity> {
-
-    val logs = mutableListOf<FoodLogEntity>()
-
-    for (meal in meals) {
-        val foodMap = foodResolver.resolveFoods(meal.items).last()
-
-        for (item in meal.items) {
-            val resolvedName = foodResolver.resolve(item.food)
-
-            val food = foodMap[resolvedName]
-                ?: continue // skip if something went wrong
-
-            val grams = safeGrams(item.grams!!)
-
-            logs.add(
-                FoodLogEntity(
-                    foodId = food.foodId,
-                    grams = grams,
-                    timestamp = System.currentTimeMillis(),
-                    mealType = meal.name,
-                    dietPlanId = dietPlanId
-                )
-            )
-        }
-    }
-    return logs
-}
 
 
 suspend fun AILogResponse.toFoodLogs(
@@ -135,7 +101,9 @@ suspend fun AILogResponse.toUILog(foodResolver: FoodResolver): UILog {
                 calories = food.caloriesPer100g * factor,
                 protein = food.proteinPer100g * factor,
                 carbs = food.carbsPer100g * factor,
-                fats = food.fatsPer100g * factor
+                fats = food.fatsPer100g * factor,
+                confidence = item.confidence,
+                assumed = item.assumed
             ).also {
                 Timber.v("toUILog: Created UIFoodItem: ${it.name} (${it.grams}g)")
             }

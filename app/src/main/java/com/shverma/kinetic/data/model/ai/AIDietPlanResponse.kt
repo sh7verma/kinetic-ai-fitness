@@ -3,31 +3,11 @@ package com.shverma.kinetic.data.model.ai
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AIDietPlanResponse(
-    val type: String = "diet_plan",
-    val diet_plan: AIDietPlan,
-    val confidence: Double? = null,
-    val reasoning: String? = null
-)
-
-@Serializable
-data class AIDietPlan(
-    val date: String,
-    val goal: String,
-    val meals: List<AIMeal>
-)
-
-@Serializable
-data class AIMeal(
-    val name: String,
-    val time: String,
-    val items: List<AIFoodItem>
-)
-
-@Serializable
 data class AIFoodItem(
     val food: String,
-    val grams: String?=null
+    val grams: String? = null,
+    val confidence: Double = 0.0,
+    val assumed: String? = null
 )
 
 fun String.toGrams(): Double {

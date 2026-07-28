@@ -15,31 +15,14 @@ private val provider = GoogleFont.Provider(
     certificates = R.array.com_google_android_gms_fonts_certs,
 )
 
-val LexendFamily = FontFamily(
-    Font(googleFont = GoogleFont("Lexend"), fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = GoogleFont("Lexend"), fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = GoogleFont("Lexend"), fontProvider = provider, weight = FontWeight.Bold),
-    Font(googleFont = GoogleFont("Lexend"), fontProvider = provider, weight = FontWeight.Black),
-)
-
-val PlusJakartaSansFamily = FontFamily(
-    Font(googleFont = GoogleFont("Plus Jakarta Sans"), fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = GoogleFont("Plus Jakarta Sans"), fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = GoogleFont("Plus Jakarta Sans"), fontProvider = provider, weight = FontWeight.SemiBold),
-)
-
-val SpaceGroteskFamily = FontFamily(
-    Font(googleFont = GoogleFont("Space Grotesk"), fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = GoogleFont("Space Grotesk"), fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = GoogleFont("Space Grotesk"), fontProvider = provider, weight = FontWeight.Bold),
-)
-
-val BarlowCondensedFamily = FontFamily(
-    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Bold),
-    Font(googleFont = GoogleFont("Barlow Condensed"), fontProvider = provider, weight = FontWeight.Black),
+// Redesign type family — single face for both display and body, per
+// docs/redesign/kinetic-redesign-v1.html ("Type is Inter, numbers get
+// hierarchy without 'bravado' sizing").
+val InterFamily = FontFamily(
+    Font(googleFont = GoogleFont("Inter"), fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = GoogleFont("Inter"), fontProvider = provider, weight = FontWeight.Medium),
+    Font(googleFont = GoogleFont("Inter"), fontProvider = provider, weight = FontWeight.SemiBold),
+    Font(googleFont = GoogleFont("Inter"), fontProvider = provider, weight = FontWeight.Bold),
 )
 
 data class KineticTypography(
@@ -57,81 +40,85 @@ data class KineticTypography(
     val labelSm: TextStyle,
 )
 
+// Redesign scale — sampled from docs/redesign/kinetic-redesign-v1.html:
+// hero number 36-44/700, stat number 22-28/700, title 600, body 15/400,
+// micro-label 11/600 caps. No "bravado" oversizing — numbers get hierarchy
+// through weight and spacing, not spectacle.
 val KineticTypographyDefaults = KineticTypography(
     displayLg = TextStyle(
-        fontFamily = LexendFamily,
-        fontWeight = FontWeight.Black,
-        fontSize = 56.sp,
-        lineHeight = 64.sp,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 44.sp,
+        lineHeight = 52.sp,
     ),
     displayMd = TextStyle(
-        fontFamily = LexendFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
     ),
     displaySm = TextStyle(
-        fontFamily = LexendFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
     ),
     titleLg = TextStyle(
-        fontFamily = LexendFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
     ),
     titleMd = TextStyle(
-        fontFamily = LexendFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 26.sp,
+        fontSize = 17.sp,
+        lineHeight = 24.sp,
     ),
     titleSm = TextStyle(
-        fontFamily = LexendFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
     ),
     bodyLg = TextStyle(
-        fontFamily = SpaceGroteskFamily,
-        fontWeight = FontWeight.Medium,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
     ),
     bodyMd = TextStyle(
-        fontFamily = SpaceGroteskFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
+        fontSize = 15.sp,
         lineHeight = 22.sp,
     ),
     bodySm = TextStyle(
-        fontFamily = SpaceGroteskFamily,
+        fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
+        fontSize = 13.sp,
         lineHeight = 18.sp,
     ),
     labelLg = TextStyle(
-        fontFamily = SpaceGroteskFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 1.1.sp
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.2.sp
     ),
     labelMd = TextStyle(
-        fontFamily = SpaceGroteskFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 1.sp
+        letterSpacing = 0.6.sp
     ),
     labelSm = TextStyle(
-        fontFamily = SpaceGroteskFamily,
-        fontWeight = FontWeight.Medium,
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 10.sp,
         lineHeight = 14.sp,
-        letterSpacing = 0.8.sp
+        letterSpacing = 0.6.sp
     ),
 )
 

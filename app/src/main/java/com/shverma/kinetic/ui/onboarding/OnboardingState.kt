@@ -1,44 +1,17 @@
 package com.shverma.kinetic.ui.onboarding
 
-enum class OnboardingStep(
-    val stepNumber: Int,
-    val title: String,
-    val subtitle: String,
-    val description: String
-) {
-    BIOMETRICS(
-        1,
-        "BIOMETRICS",
-        "ESTABLISH BASELINE",
-        "Calibrate your metabolic training zones and precision output targets for optimal performance."
-    ),
-    WORKOUT_SETUP(
-        2,
-        "WORKOUT SETUP",
-        "DEFINE MISSION",
-        "Tailor your training protocol to your specific goals, schedule, and available equipment."
-    ),
-    MEAL_SETUP(
-        3,
-        "MEAL SETUP",
-        "FUEL PROTOCOL",
-        "Optimize your nutrition to support recovery, energy levels, and body composition changes."
-    ),
-    ACTIVITY_SETUP(
-        4,
-        "ACTIVITY LEVEL",
-        "ENERGY OUTPUT",
-        "Calibrate your daily metabolic baseline for precise energy expenditure tracking."
-    ),
-    FLAVOR_PROTOCOL(
-        5,
-        "FLAVOR PROTOCOL",
-        "PALATE SYNC",
-        "Integrate your regional culinary preferences for accurate meal generation."
-    );
+/**
+ * Trimmed to exactly what feeds the macro-target calculation (see
+ * MacrosCalculator.calculate) or first-meal-logging activation — per
+ * docs/redesign/kinetic-redesign-v1.html and docs/APP_UPDATE.md.
+ */
+enum class OnboardingStep(val stepNumber: Int, val title: String) {
+    BIOMETRICS(1, "A little about you"),
+    GOALS(2, "Your goal & activity"),
+    RESULTS(3, "Your daily targets");
 
     companion object {
-        val totalSteps = OnboardingStep.entries.size
-        fun fromStepNumber(stepNumber: Int) = OnboardingStep.entries.firstOrNull { it.stepNumber == stepNumber } ?: BIOMETRICS
+        val totalSteps = entries.size
+        fun fromStepNumber(stepNumber: Int) = entries.firstOrNull { it.stepNumber == stepNumber } ?: BIOMETRICS
     }
 }

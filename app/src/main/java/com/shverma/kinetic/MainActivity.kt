@@ -21,8 +21,6 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import com.shverma.kinetic.ui.details.DetailScreen
 import com.shverma.kinetic.ui.onboarding.screens.OnboardingScreen
 import com.shverma.kinetic.ui.theme.AppTheme
 import com.shverma.kinetic.ui.welcome.WelcomeScreen
@@ -94,14 +92,6 @@ fun AppNavigation(
                 )
             }
 
-            composable<Routes.DetailRoute> { navBackStackEntry ->
-                val args = navBackStackEntry.toRoute<Routes.DetailRoute>()
-                DetailScreen(
-                    itemId = args.id,
-                    snackBarHostState = snackBarHostState,
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
         }
     }
 }
@@ -114,7 +104,4 @@ object Routes {
 
     @Serializable
     object OnboardingRoute
-
-    @Serializable
-    data class DetailRoute(val id: Int)
 }

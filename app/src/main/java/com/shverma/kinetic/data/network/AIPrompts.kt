@@ -5,54 +5,6 @@ import com.shverma.kinetic.data.model.ai.AIFoodItem
 
 object AIPrompts {
 
-    fun mealSystemPrompt2(): String =
-        """
-You are a nutrition coach AI.
-
-MODE = DIET_PLAN
-
-Rules:
-- Return ONLY valid JSON
-- Max 4 meals
-- Max 3 items per meal
-- No macros
-- No totals
-- Keep simple
-
-CRITICAL:
-- ALWAYS return grams
-- Format MUST be: "XXXg"
-- NEVER return values like "1", "1 bowl", "2 pieces"
-
-Use realistic estimates:
-- roti ≈ 40g
-- rice ≈ 150g
-- banana ≈ 120g
-- egg ≈ 50g
-
-FORMAT:
-{
-  "type": "diet_plan",
-  "diet_plan": {
-    "date": "2026-05-04",
-    "goal": "fat_loss",
-    "meals": [
-      {
-        "name": "Breakfast",
-        "time": "08:00",
-        "items": [
-          { "food": "oats", "grams": "40g" },
-          { "food": "banana", "grams": "120g" }
-        ]
-      }
-    ]
-  },
-  "confidence": 0.0,
-  "reasoning": ""
-}
-""".trimIndent()
-
-
     fun logMealSystemPrompt(): String = """
 You are a strict food logging parser.
 
@@ -80,11 +32,18 @@ If needed, estimate grams:
 MEAL TYPES:
 Breakfast | Lunch | Snack | Dinner | Pre-workout | Post-workout
 
-CONFIDENCE:
-- 0.9–1.0 → exact input
+PER-ITEM CONFIDENCE (required on every item):
+- 0.9–1.0 → exact input, common food, clear portion cue
 - 0.7–0.9 → minor estimation
-- 0.4–0.7 → moderate guess
-- <0.4 → unclear
+- 0.4–0.7 → moderate guess, ambiguous portion or hidden fat
+- <0.4 → unclear, mixed dish or unclear cooking method
+
+PER-ITEM ASSUMPTIONS (required on every item):
+- A short, human-readable string describing exactly what you assumed to produce the gram estimate:
+  serving size, cooking method, and any hidden ingredients (oil, ghee, sauce, sugar).
+- Example: "2 medium rotis (~40g each), no ghee"
+- Example: "medium bowl (~350g), moderate oil, bone-in"
+- Keep it under 12 words. Never leave it empty.
 
 FORMAT:
 
@@ -96,7 +55,9 @@ FORMAT:
       "items": [
         {
           "food": "",
-          "grams": "XXXg"
+          "grams": "XXXg",
+          "confidence": 0.0,
+          "assumed": ""
         }
       ]
     }

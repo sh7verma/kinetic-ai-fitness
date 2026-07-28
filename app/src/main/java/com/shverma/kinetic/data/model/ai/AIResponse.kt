@@ -2,7 +2,6 @@ package com.shverma.kinetic.data.model.ai
 
 
 import android.util.Log
-import com.shverma.kinetic.data.model.WorkoutPlanResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -14,11 +13,9 @@ private val json = Json {
 
 sealed class AIResponse {
 
-    data class WorkoutPlan(val data: WorkoutPlanResponse) : AIResponse()
     data class TargetCaloriesResult(val data: TargetCaloriesData) : AIResponse()
 
     data class NutritionStrategyResult(val data: NutritionStrategy) : AIResponse()
-    data class DietPlanResult(val data: AIDietPlanResponse) : AIResponse()
 
     data class TextAnswer(val message: String) : AIResponse()
 
@@ -45,13 +42,6 @@ sealed class AIResponse {
                 Log.d(TAG, "Extracted type: $type")
 
                 when (type) {
-                    "workout" -> {
-                        val parsed = json.decodeFromString<WorkoutPlanResponse>(cleaned)
-                        Log.d(TAG, "Parsed WorkoutPlan")
-                        WorkoutPlan(parsed)
-                    }
-
-
                     "target_calories" -> {
                         val parsed = json.decodeFromString<TargetCaloriesResponse>(cleaned)
                         Log.d(TAG, "Parsed TargetCalories")
@@ -63,13 +53,6 @@ sealed class AIResponse {
                         Log.d(TAG, "Parsed NutritionStrategy: $parsed")
                         NutritionStrategyResult(parsed)
                     }
-                    "diet_plan" -> {
-                        val parsed = json.decodeFromString<AIDietPlanResponse>(cleaned)
-                        Log.d(TAG, "Parsed FoodEntityAiResponse")
-
-                        DietPlanResult(parsed)
-                    }
-
                     null -> {
                         Log.d(TAG, "Type is null, returning TextAnswer")
                         TextAnswer(text.trim())

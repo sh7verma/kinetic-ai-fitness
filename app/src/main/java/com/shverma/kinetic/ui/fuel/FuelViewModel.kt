@@ -4,10 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shverma.kinetic.data.local.dao.FoodDao
 import com.shverma.kinetic.data.local.dao.FoodLogDao
-import com.shverma.kinetic.data.local.entity.FoodEntity
 import com.shverma.kinetic.data.local.entity.FoodLogEntity
 import com.shverma.kinetic.data.local.entity.FoodLogWithFood
-import com.shverma.kinetic.data.model.ai.TargetCaloriesData
 import com.shverma.kinetic.data.repository.FoodResolver
 import com.shverma.kinetic.data.repository.MacrosCalculator
 import com.shverma.kinetic.data.repository.UserProfileRepository
@@ -19,8 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 import javax.inject.Inject
@@ -70,30 +68,15 @@ class FuelViewModel @Inject constructor(
         var totalProtein = 0.0
         var totalCarbs = 0.0
         var totalFats = 0.0
-        val items = mutableListOf<FuelItem>()
 
         dailyLogs.forEach { logWithFood ->
             val log = logWithFood.log
             val food = logWithFood.food
             val factor = log.grams / 100.0
-            val calories = food.caloriesPer100g * factor
-            val protein = food.proteinPer100g * factor
-            val carbs = food.carbsPer100g * factor
-            val fats = food.fatsPer100g * factor
-
-            totalCalories += calories
-            totalProtein += protein
-            totalCarbs += carbs
-            totalFats += fats
-
-            items.add(
-                FuelItem(
-                    title = food.name,
-                    category = log.mealType,
-                    time = Date(log.timestamp ?: log.createdAt).toTimeString(),
-                    calories = calories
-                )
-            )
+            totalCalories += food.caloriesPer100g * factor
+            totalProtein += food.proteinPer100g * factor
+            totalCarbs += food.carbsPer100g * factor
+            totalFats += food.fatsPer100g * factor
         }
 
         // 2. Calculate Weekly Trend
@@ -106,7 +89,6 @@ class FuelViewModel @Inject constructor(
             val food = logWithFood.food
             val calories = food.caloriesPer100g * (log.grams / 100.0)
             calendar.timeInMillis = log.timestamp ?: log.createdAt
-            // Adjust to 0-indexed Monday
             val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
             val index = when (dayOfWeek) {
                 Calendar.MONDAY -> 0
@@ -127,6 +109,15 @@ class FuelViewModel @Inject constructor(
 
         val remaining = (target.targetCalories - totalCalories).coerceAtLeast(0.0)
 
+        // 3. Today's meal history — grouped chronologically, oldest first
+        val todaysMeals = groupIntoMeals(dailyLogs).sortedBy { it.timestamp }
+
+        // 4. Quick-repeat — most recent distinct meals from the last 7 days
+        val quickRepeats = groupIntoMeals(weeklyLogs)
+            .sortedByDescending { it.timestamp }
+            .distinctBy { it.displayName }
+            .take(2)
+
         FuelState(
             caloriesValue = remaining.formatCalories(),
             aiExplanation = target.explanation ?: "Based on your profile",
@@ -139,8 +130,8 @@ class FuelViewModel @Inject constructor(
             carbsPercent = ((totalCarbs / target.carbsG) * 100).formatPercentage(),
             fatsValue = String.format("%.0f/%.0fg", totalFats, target.fatsG),
             fatsPercent = ((totalFats / target.fatsG) * 100).formatPercentage(),
-            loggedMealNames = dailyLogs.map { it.log.mealType }.toSet(),
-            items = items,
+            todaysMeals = todaysMeals,
+            quickRepeats = quickRepeats,
             weeklyTrend = weeklyTrend
         )
     }.stateIn(
@@ -148,6 +139,50 @@ class FuelViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = FuelState()
     )
+
+    /** Re-logs a previously logged meal without calling the AI again. */
+    fun repeatMeal(meal: LoggedMealGroup) {
+        viewModelScope.launch {
+            meal.items.forEach { item ->
+                foodLogDao.insert(
+                    FoodLogEntity(
+                        foodId = item.log.foodId,
+                        grams = item.log.grams,
+                        timestamp = System.currentTimeMillis(),
+                        mealType = item.log.mealType
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Groups individual logged food items back into the "meal" the user logged
+     * together — items saved by the same AIChatViewModel.saveMeal() call share a
+     * mealType and land within the same minute, since that's a single fast DB
+     * write loop, not a slow multi-step process.
+     */
+    private fun groupIntoMeals(logs: List<FoodLogWithFood>): List<LoggedMealGroup> {
+        val groups = LinkedHashMap<String, MutableList<FoodLogWithFood>>()
+        logs.forEach { item ->
+            val ts = item.log.timestamp ?: item.log.createdAt
+            val minuteBucket = ts / 60_000
+            val key = "${item.log.mealType}_$minuteBucket"
+            groups.getOrPut(key) { mutableListOf() }.add(item)
+        }
+        return groups.values.map { groupItems ->
+            val firstLog = groupItems.first().log
+            val ts = firstLog.timestamp ?: firstLog.createdAt
+            LoggedMealGroup(
+                displayName = groupItems.joinToString(", ") { it.food.name },
+                mealType = firstLog.mealType,
+                time = Date(ts).toTimeString(),
+                timestamp = ts,
+                totalCalories = groupItems.sumOf { it.food.caloriesPer100g * (it.log.grams / 100.0) },
+                items = groupItems
+            )
+        }
+    }
 }
 
 data class FuelState(
@@ -163,9 +198,15 @@ data class FuelState(
     val fatsValue: String = "",
     val fatsPercent: String = "",
     val weeklyTrend: List<Pair<String, Double>> = emptyList(),
-    val loggedMealNames: Set<String> = emptySet(),
-    val items: List<FuelItem> = emptyList()
+    val todaysMeals: List<LoggedMealGroup> = emptyList(),
+    val quickRepeats: List<LoggedMealGroup> = emptyList()
 )
 
-data class FuelItem(val title: String, val category: String, val time: String, val calories: Double)
-
+data class LoggedMealGroup(
+    val displayName: String,
+    val mealType: String,
+    val time: String,
+    val timestamp: Long,
+    val totalCalories: Double,
+    val items: List<FoodLogWithFood>
+)
