@@ -21,7 +21,6 @@ espresso-core-version = "3.6.1"
 hilt-android-compiler-version = "2.57.1"
 hilt-compiler-version = "1.2.0"
 hilt-navigation-compose-version = "1.2.0"
-hilt-work-version = "1.2.0"
 junit = "4.13.2"
 junit-version = "1.2.1"
 kotlin-reflect-version = "2.2.20"
@@ -30,9 +29,6 @@ lifecycle-ktx-version = "2.9.0"
 material3 = "1.3.2"
 material-icons-extended-version = "1.7.8"
 material-icons-version = "1.7.8"
-media3-common = "1.8.0"
-media3-exoplayer = "1.8.0"
-media3-ui = "1.8.0"
 mockwebserver-version = "5.3.2"
 multidex = "2.0.1"
 okhttp3-logging-interceptor-version = "5.3.2"
@@ -41,15 +37,12 @@ room-version = "2.7.2"
 rules-version = "1.6.1"
 timber-version = "5.0.1"
 ui-android-version = "1.8.2"
-work-runtime-version = "2.10.3"
-jose4j-version = "0.9.6"
 serialization = "1.9.0"
 
 mockk = "1.13.13"
 turbine = "1.2.1"
 coroutines-test-version = "1.10.2"
 arch-core-testing-version = "2.2.0"
-work-runtime-ktx = "2.10.3"
 
 firebase-bom = "33.16.0"
 credentials = "1.5.0"
@@ -59,7 +52,6 @@ foundation-layout = "1.11.0"
 
 [libraries]
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
-androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3-exoplayer" }
 androidx-multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
 
 #kotlin
@@ -68,8 +60,6 @@ androidx-lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-
 androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-ktx-version" }
 androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle-ktx-version" }
 coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coil-svg" }
-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3-common" }
-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3-ui" }
 org-jetbrains-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutine-version" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization"}
 
@@ -98,7 +88,6 @@ com-squareup-retrofit2-retrofit = { group = "com.squareup.retrofit2", name = "re
 #dagger/hilt
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hilt-compiler-version" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose-version" }
-androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-work-version" }
 google-dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger-hilt-android-version" }
 google-dagger-hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt-android-compiler-version" }
 
@@ -115,9 +104,6 @@ androidx-datastore = { group = "androidx.datastore", name = "datastore", version
 #logging/timber
 jakewharton-timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber-version" }
 
-##JWT-Token
-org-bitbucket-b_c-jose4j = { group = "org.bitbucket.b_c", name = "jose4j", version.ref = "jose4j-version" }
-
 #testing
 androidx-compose-ui-test-junit = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "compose-ui-test-manifest-version" }
@@ -125,7 +111,6 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core-version" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junit-version" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "rules-version" }
-androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "work-runtime-version" }
 jetbrains-kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin-reflect-version" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 squareup-okhttp3-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "mockwebserver-version" }
@@ -133,7 +118,6 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 androidx-arch-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "arch-core-testing-version" }
-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work-runtime-ktx" }
 
 #firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }

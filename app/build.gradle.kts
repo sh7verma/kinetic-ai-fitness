@@ -134,18 +134,6 @@ dependencies {
     implementation(libs.io.coil.kt.compose)
     implementation(libs.coil.svg)
 
-    /*JWT Token*/
-    implementation(libs.org.bitbucket.b.c.jose4j)
-
-    /*Exo-Player*/
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.media3.ui)
-    implementation(libs.media3.common)
-
-    /*Work Manager*/
-    implementation(libs.work.runtime.ktx)
-    implementation(libs.androidx.hilt.work)
-
     /*Timber*/
     implementation(libs.jakewharton.timber)
 
@@ -172,7 +160,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.rules)
-    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.squareup.okhttp3.mockwebserver)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
