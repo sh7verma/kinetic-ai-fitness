@@ -1,0 +1,14 @@
+platform :ios, '14.1'
+
+use_frameworks! :linkage => :static
+
+target 'iosApp' do
+  project 'iosApp.xcodeproj'
+
+  # GitLive supplies the common Kotlin API; the iOS host must link the
+  # official Firebase frameworks that back the generated native symbols.
+  pod 'FirebaseCore'
+  pod 'FirebaseAuth'
+  pod 'FirebaseFirestore'
+  pod 'GoogleSignIn'
+end

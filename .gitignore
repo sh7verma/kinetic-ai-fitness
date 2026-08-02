@@ -56,5 +56,8 @@ iosApp/**/xcuserdata/
 iosApp/**/*.xcuserstate
 iosApp/**/DerivedData/
 iosApp/Configuration/Config.local.xcconfig
+iosApp/Pods/
+iosApp/iosApp.xcworkspace/
+composeApp/composeApp.podspec
 composeApp/GoogleService-Info.plist
 iosApp/iosApp/GoogleService-Info.plist

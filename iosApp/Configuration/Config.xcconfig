@@ -1,3 +1,7 @@
 TEAM_ID=
 BUNDLE_ID=com.shverma.kinetic
 APP_NAME=Kinetic
+OPENAI_API_KEY=
+GOOGLE_IOS_CLIENT_ID=
+
+#include? "Config.local.xcconfig"

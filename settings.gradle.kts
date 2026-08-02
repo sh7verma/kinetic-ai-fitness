@@ -20,6 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "kinetic-ai-fitness"
-include(":app")
 include(":composeApp")
-include(":androidApp")

@@ -1,6 +1,6 @@
 # Kinetic — AI-Powered Fitness Tracker
 
-An Android app that lets users log meals through natural language, with GPT-4o parsing the input into structured nutrition data in real time. Built as a full-stack portfolio project demonstrating LLM integration in a production-grade Android architecture.
+A Kotlin Multiplatform app for Android and iOS that lets users log meals through natural language, with GPT-4o parsing the input into structured nutrition data in real time.
 
 > "I had 2 eggs and a roti" → instant calorie + macro breakdown, saved to your daily log.
 
@@ -26,53 +26,39 @@ An Android app that lets users log meals through natural language, with GPT-4o p
 - **Fuel dashboard** — daily calorie ring, macro progress bars, and meal history
 - **Workout plan** — auto-generated push/pull/legs split with set/rep tracking
 - **Progress tracking** — weight log with trend chart
-- **Firebase auth** — Google Sign-In via Credential Manager
+- **Firebase auth** — shared GitLive Auth with Android Credential Manager and iOS Google Sign-In
 
 ---
 
 ## Architecture
 
-Clean Architecture with three layers: UI → Domain (repositories) → Data (Room + Firebase + OpenAI).
+Compose Multiplatform UI and shared controllers/repositories run on both platforms. Platform source sets provide only SDK, filesystem, HTTP-engine, and host integrations.
 
 ```
-com.shverma.kinetic/
-├── data/
-│   ├── network/          # OpenAI Retrofit service + prompt templates
-│   ├── local/            # Room database (Food, FoodLog entities + DAOs)
-│   ├── repository/       # Business logic, coordinates AI + local + remote
-│   ├── model/            # Data classes, AI response models
-│   ├── auth/             # Firebase Auth / Google Sign-In
-│   ├── preference/       # DataStore for user profile persistence
-│   └── worker/           # Background sync tasks
-├── di/                   # Hilt modules (NetworkModule, DatabaseModule, etc.)
-├── ui/
-│   ├── aichat/           # Conversational meal logging screen
-│   ├── fuel/             # Calorie + macro dashboard
-│   ├── diet/             # Diet plan and food log
-│   ├── plan/             # Workout plan
-│   ├── stats/            # Progress charts
-│   ├── onboarding/       # Profile + goal setup flow
-│   └── theme/            # Kinetic design system tokens
-└── utils/
+composeApp/
+├── src/commonMain/       # Shared Compose UI, controllers, data, persistence, and DI
+├── src/androidMain/      # Android Application, Credential Manager, OkHttp, and paths
+└── src/iosMain/          # iOS Koin host, Google Sign-In bridge, Darwin, and paths
+iosApp/                   # SwiftUI host, Firebase initialization, and CocoaPods
 ```
 
-**State management:** Kotlin Flow + ViewModel  
-**DI:** Hilt (SingletonComponent)  
+**State management:** Kotlin Flow + shared feature controllers
+**DI:** Koin
 **Async:** Coroutines throughout; no RxJava
 
 ---
 
 ## LLM Integration
 
-All AI logic lives in `data/network/` and `data/repository/`.
+All AI logic lives in `composeApp/src/commonMain/kotlin/com/shverma/kinetic/data/`.
 
 ### How meal logging works
 
 ```
 User types "2 eggs, 1 roti"
-  → AIChatViewModel.sendMessage()
+  → AIChatController.sendMessage()
   → DietAIRepository.logFood()
-  → FoodAIService builds an OpenAI chat request:
+  → FoodAIService builds a shared Ktor OpenAI request:
       • system prompt: strict JSON schema, portion size rules, common Indian food gram estimates
       • user message: the input + full user profile (age, weight, goal, activity)
   → GPT-4o-mini returns structured JSON
@@ -103,18 +89,17 @@ Key design choices:
 
 | Layer | Technology |
 |-------|-----------|
-| Language | Kotlin |
-| UI | Jetpack Compose, Material 3 |
-| Navigation | Compose Navigation |
-| AI | OpenAI API (GPT-4o-mini) via Retrofit |
-| Local DB | Room |
-| Remote DB | Firebase Firestore |
-| Auth | Firebase Auth, Google Credential Manager |
-| DI | Hilt |
+| Language | Kotlin Multiplatform |
+| UI | Compose Multiplatform, Material 3 |
+| Navigation | Shared Compose route state |
+| AI | OpenAI API (GPT-4o-mini) via Ktor |
+| Local DB | Room KMP + bundled SQLite |
+| Remote DB | GitLive Firebase Firestore |
+| Auth | GitLive Firebase Auth, Android Credential Manager, iOS Google Sign-In |
+| DI | Koin |
 | Async | Kotlin Coroutines, Flow |
-| Image loading | Coil |
-| Logging | Timber |
-| Serialization | kotlinx.serialization, Gson |
+| Logging | Kermit |
+| Serialization | kotlinx.serialization |
 | Preferences | DataStore |
 
 ---
@@ -139,12 +124,14 @@ Key design choices:
    OPENAI_API_KEY=sk-...your-key-here...
    ```
 
-3. Add your `google-services.json` to `app/`:
+3. Add your Android `google-services.json` to `composeApp/`:
    - Open [Firebase Console](https://console.firebase.google.com) → your project → Project Settings
-   - Download `google-services.json` and place it at `app/google-services.json`
+   - Download `google-services.json` and place it at `composeApp/google-services.json`
    - This file is in `.gitignore` and is **not included in the repo** — you must supply your own
 
-4. Build and run on an emulator or physical device (API 26+).
+4. For iOS, copy `iosApp/Configuration/Config.local.xcconfig.example` to `iosApp/Configuration/Config.local.xcconfig` and fill in your local OpenAI key and OAuth client ID. Add the user-provided `GoogleService-Info.plist` to the `iosApp` target.
+
+5. Build and run on Android (API 26+) or iOS 14.1+.
 
 > **Note on API key security:** The key is read via `BuildConfig` at compile time. For a production release, replace the direct OpenAI call with a backend proxy so the key is never embedded in the APK.
 
@@ -168,8 +155,9 @@ The app uses a custom design language called **Kinetic Precision**:
 | `FoodAIService.kt` | Orchestrates all OpenAI API calls |
 | `AIPrompts.kt` | System prompt templates |
 | `DietAIRepository.kt` | Combines AI + Room + Firestore for food logging |
-| `AIChatViewModel.kt` | UI state for the chat screen |
-| `NetworkModule.kt` | Hilt wiring for Retrofit + OkHttp |
+| `AIChatController.kt` | Shared state and meal-logging orchestration |
+| `KtorOpenAIClient.kt` | Shared OpenAI transport boundary |
+| `KineticKoinModule.kt` | Shared Koin bindings |
 | `MacrosCalculator.kt` | Converts AI strategy response to daily targets |
 
 ---

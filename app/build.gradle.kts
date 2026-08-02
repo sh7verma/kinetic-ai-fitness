@@ -3,11 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
-    alias(libs.plugins.daggerHiltAndroid)
-    alias(libs.plugins.googleDevtoolsKsp)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.jetbrainsKotlinKapt)
-    alias(libs.plugins.room)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.google.services)
 }
@@ -84,20 +79,14 @@ kotlin {
 }
 
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
-
-
 dependencies {
+    implementation(project(":composeApp"))
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.lifecycle.livedata)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.org.jetbrains.kotlinx.coroutines.android)
     implementation(libs.androidx.multidex)
-
-    implementation(libs.kotlinx.serialization.json)
 
     /*Jetpack Compose*/
     implementation(libs.androidx.activity.compose)
@@ -109,38 +98,28 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview.android)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.text.google.fonts)
 
-    /*Retrofit*/
-    implementation(libs.com.squareup.okhttp3.logging.intercepter)
-    implementation(libs.com.squareup.retrofit2.converter.gson)
-    implementation(libs.com.squareup.retrofit2.retrofit)
-
-    /*Dagger Hilt*/
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.google.dagger.hilt.android)
-    implementation(libs.androidx.compose.foundation.layout)
-    kapt(libs.androidx.hilt.compiler)
-    kapt(libs.google.dagger.hilt.android.compiler)
+    /*Koin*/
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
 
     /*Data Store*/
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.datastore)
 
+    /*Shared Room KMP database API*/
+    implementation(libs.androidx.room.runtime)
+
     /*Coil Image*/
     implementation(libs.io.coil.kt.compose)
     implementation(libs.coil.svg)
 
-    /*Timber*/
-    implementation(libs.jakewharton.timber)
-
-    /*Room database*/
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.runtime)
-    ksp(libs.androidx.room.compiler)
+    /*Kermit*/
+    implementation(libs.kermit)
 
     /*Firebase*/
     implementation(platform(libs.firebase.bom))
@@ -156,11 +135,9 @@ dependencies {
 
     /*Testing*/
     androidTestImplementation(libs.androidx.compose.ui.test.junit)
-    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.rules)
-    androidTestImplementation(libs.squareup.okhttp3.mockwebserver)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -170,14 +147,4 @@ dependencies {
     testImplementation(libs.androidx.arch.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.jetbrains.kotlin.reflect)
-}
-
-
-kapt {
-    correctErrorTypes = true
-}
-
-ksp {
-    arg("room.internal.schemaInput", "$projectDir/schemas")
-    arg("room.internal.schemaOutput", "$projectDir/schemas")
 }

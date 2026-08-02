@@ -1,0 +1,3 @@
+// Copy this file to Config.local.xcconfig. The local file is gitignored.
+OPENAI_API_KEY=
+GOOGLE_IOS_CLIENT_ID=
