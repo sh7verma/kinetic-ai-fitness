@@ -24,17 +24,15 @@ The milestone is functional Android and iOS parity. Pixel-perfect iOS polish and
 - **Waiting for input** — implementation depends on an external artifact or user decision.
 - **Complete** — implementation and the phase verification gate are finished.
 
-## Current repository state
+## Current repository state (updated 2026-08-02, post-crash recovery)
 
-- `composeApp/` is now the Android application module and contains the Android host, Koin graph, Android SDK adapters, shared Compose UI, migrated models, pure logic, and KMP persistence.
-- The old `app/` directory remains only as an unreferenced cleanup shell; it is no longer included by `settings.gradle.kts` and its host sources/resources have moved to `composeApp/src/androidMain`.
-- `iosApp/` exists and wraps the Compose framework through `MainViewController`.
-- `androidApp/` has been removed from the Gradle build and its transitional launcher sources are deleted.
-- `settings.gradle.kts` now includes only `:composeApp`.
-- The target architecture is now represented by `composeApp` as the Android+iOS application module; the old `app/` directory still needs final deletion and Gradle cleanup after parity.
-- Shared production foundation is partially migrated; the shared iOS feature host and Koin composition root now exist, while native iOS Google Sign-In/Firebase runtime verification remains.
-- Current branch: `refactor/kmp`.
-- Existing migration commits: `9c3a3b6` (dead-code cleanup) and `7389661` (KMP scaffold).
+- The uncommitted work from the crashed migration subtask was independently verified (both `:composeApp:assembleDebug` and `:composeApp:compileKotlinIosSimulatorArm64` build) and committed as `ee9c44c`.
+- The legacy `app/` directory (stale shell only, no real source left) was deleted in `dfa9f43`. `settings.gradle.kts` includes only `:composeApp`.
+- Live-verified since the crash: the iOS CocoaPods workspace (`iosApp/iosApp.xcworkspace`) builds and launches on an iOS 26.2 Simulator, rendering the real Welcome screen with Firebase configured and no crash — the CoreSimulatorService issue previously blocking this did not reproduce.
+- Live-verified on Android: the app installs, launches, restores a prior session, and renders the real Fuel dashboard with live data (kcal remaining, macros, AI nutrition summary, quick-repeat) — no crash-log entries.
+- A local `iosApp/Configuration/Config.local.xcconfig` (gitignored) with a real `OPENAI_API_KEY` now exists for iOS AI-logging testing.
+- Remaining before Phase 11 sign-off: interactive Google Sign-In OAuth completion end-to-end (needs a real Google account click-through — not something that can be scripted), and a console check that Kermit logs actually appear in Xcode's output.
+- Current branch: `refactor/kmp`. Migration commits: `9c3a3b6`, `7389661`, `ee9c44c`, `dfa9f43`.
 
 ## Phase status
 
