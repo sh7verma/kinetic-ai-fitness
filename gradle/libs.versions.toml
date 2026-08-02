@@ -50,6 +50,8 @@ googleid = "1.1.1"
 google-services = "4.4.2"
 foundation-layout = "1.11.0"
 
+compose-multiplatform-version = "1.9.0"
+
 [libraries]
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
@@ -141,3 +143,6 @@ room = { id = "androidx.room", version.ref = "room-version" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "jetbrains-kotlin-android" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "jetbrains-kotlin-android" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "jetbrains-kotlin-android" }
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform-version" }

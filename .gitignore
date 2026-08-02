@@ -25,6 +25,8 @@ local.properties
 
 # Firebase config — add your own from Firebase Console → Project Settings
 app/google-services.json
+androidApp/google-services.json
+composeApp/google-services.json
 
 # Log files
 *.log
@@ -48,3 +50,11 @@ Thumbs.db
 
 # Kotlin
 .kotlin/
+
+# Xcode / iOS
+iosApp/**/xcuserdata/
+iosApp/**/*.xcuserstate
+iosApp/**/DerivedData/
+iosApp/Configuration/Config.local.xcconfig
+composeApp/GoogleService-Info.plist
+iosApp/iosApp/GoogleService-Info.plist
